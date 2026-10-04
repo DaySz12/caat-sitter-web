@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-catsitter}
+      POSTGRES_USER: ${POSTGRES_USER:-catsitter}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-catsitter_dev_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-catsitter} -d ${POSTGRES_DB:-catsitter}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./api/CatSitter.Api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=${POSTGRES_DB:-catsitter};Username=${POSTGRES_USER:-catsitter};Password=${POSTGRES_PASSWORD:-catsitter_dev_password}"
+      Jwt__Secret: ${JWT_SECRET:-dev-only-please-change-this-secret-key-32chars+}
+      Jwt__Issuer: catsitter-api
+      Jwt__Audience: catsitter-web
+      Cors__Origins: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+    ports:
+      - "${API_PORT:-5254}:8080"
+    volumes:
+      - api_uploads:/app/uploads
+
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "${ADMINER_PORT:-8081}:8080"
+
+volumes:
+  db_data:
+  api_uploads:
