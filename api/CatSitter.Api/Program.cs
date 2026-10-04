@@ -68,6 +68,10 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+    if (builder.Configuration.GetValue("Seed:DemoData", true))
+    {
+        DemoSeeder.Seed(db);
+    }
 }
 
 if (app.Environment.IsDevelopment())

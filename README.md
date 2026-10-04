@@ -18,37 +18,62 @@ Folder layout is **vertical-slice**: `apps/web/src/features/<domain>` bundles ea
 feature's views, Pinia store and API calls together (`auth`, `cats`, `sitters`, `booking`,
 `dashboard`, `profile`), instead of splitting by technical layer.
 
-## 1. Start the database + API (Docker)
+## 🚀 รันโปรเจ็คบนเครื่องใหม่ (คำสั่งเดียวด้วย Docker)
+
+ใช้เมื่อ clone โปรเจ็คมาใหม่ หรือย้ายไปเครื่องอื่น — Docker จะสร้างทุกอย่างให้เอง
+(ฐานข้อมูล, ตาราง, บัญชีทดสอบ, API, เว็บ และหน้า admin) ไม่ต้องลง .NET / Node / Postgres เอง
+
+**สิ่งที่ต้องมี:** [Git](https://git-scm.com/) และ [Docker Desktop](https://www.docker.com/products/docker-desktop/) (เปิดโปรแกรมไว้ก่อนรันคำสั่ง)
 
 ```bash
-cp .env.example .env   # adjust POSTGRES_PASSWORD / JWT_SECRET before using this anywhere but localhost
-docker compose up -d --build
+git clone https://github.com/DaySz12/FF.git catsitter-web
+cd catsitter-web
+cp .env.example .env          # Windows PowerShell: copy .env.example .env
+docker compose up -d --build  # ครั้งแรกใช้เวลาหลายนาที (โหลด image + build)
 ```
 
-This starts three containers:
-- **db** — Postgres 16 on `localhost:5432`
-- **api** — the .NET API on `localhost:5254` (applies EF Core migrations automatically on boot)
-- **adminer** — a DB browser UI on `localhost:8082` (server: `db`, user/pass from `.env`)
+เสร็จแล้วเปิดได้เลย:
 
-Check it's alive: `curl http://localhost:5254/health` → `{"status":"ok"}`
+| อะไร | URL |
+|---|---|
+| เว็บเจ้าของแมว / พี่เลี้ยง | http://localhost:3001 |
+| หน้า Admin | http://localhost:3000 |
+| API | http://localhost:5254 (เช็ค `http://localhost:5254/health` → `{"status":"ok"}`) |
+| Adminer (ดูฐานข้อมูล) | http://localhost:8082 — server: `db`, user/pass ตาม `.env` |
 
-## 2. Run the owner/sitter web app
+ล็อกอินด้วยบัญชีทดสอบ (รหัสผ่าน `password123`): `owner@test.com`, `sitter@test.com`, `admin@test.com`
+— ระบบสร้างให้อัตโนมัติเมื่อฐานข้อมูลยังว่าง (ปิดได้ด้วย `SEED_DEMO_DATA=false` ใน `.env`)
+
+**คำสั่งที่ใช้บ่อย**
 
 ```bash
-cd apps/web
+docker compose ps                 # ดูสถานะ container
+docker compose logs -f api        # ดู log ของ API
+docker compose up -d --build      # หลังแก้โค้ดหรือ git pull — build ใหม่
+docker compose down               # หยุดทั้งหมด (ข้อมูลยังอยู่)
+docker compose down -v            # หยุด + ลบข้อมูลทั้งหมด (DB + รูปที่อัปโหลด) เริ่มใหม่จากศูนย์
+```
+
+**หมายเหตุ**
+- ถ้า port ชนกับโปรแกรมอื่น แก้ `WEB_PORT`, `ADMIN_PORT`, `API_PORT`, `POSTGRES_PORT`, `ADMINER_PORT` ใน `.env`
+- ถ้าเปลี่ยน port ของ API หรือเปิดผ่าน URL อื่น (เช่น Cloudflare tunnel) ให้แก้ `PUBLIC_API_URL`
+  แล้วรัน `docker compose up -d --build` ใหม่ (URL นี้ถูกฝังตอน build เว็บ) และเพิ่ม URL ของเว็บใน `CORS_ORIGINS`
+- ก่อนเปิดให้คนอื่นใช้จริง ให้เปลี่ยน `POSTGRES_PASSWORD` และ `JWT_SECRET` ใน `.env`
+
+## Local development (hot reload, optional)
+
+For working on the frontends with hot reload, keep `db` + `api` in Docker and run Vite locally:
+
+```bash
+docker compose up -d db api adminer
+
+cd apps/web     # or apps/admin (port 3000)
 cp .env.example .env   # VITE_API_URL defaults to http://localhost:5254
 npm install
-npm run dev             # http://localhost:3001
+npm run dev            # http://localhost:3001
 ```
 
-## 3. Run the admin portal
-
-```bash
-cd apps/admin
-cp .env.example .env    # VITE_API_URL defaults to http://localhost:5254
-npm install
-npm run dev              # http://localhost:3000
-```
+Stop the Docker `web` / `admin` containers first (`docker compose stop web admin`) if they hold ports 3001 / 3000.
 
 Admin portal is now rewired to the new API (`api/CatSitter.Api/Controllers/AdminController.cs`)
 instead of Supabase — dashboard stats, sitter verification (approve/reject), booking list,
@@ -64,6 +89,8 @@ UPDATE users SET role = 'admin', status = 'approved' WHERE email = 'you@example.
 ```
 
 ### Seeded test accounts (password: `password123` for all)
+
+Created automatically by `api/CatSitter.Api/Services/DemoSeeder.cs` on an empty database.
 
 | Role | Email |
 |---|---|
@@ -96,7 +123,7 @@ UPDATE users SET role = 'admin', status = 'approved' WHERE email = 'you@example.
 
 ```
 catsitter-web/
-├── docker-compose.yml       # db + api + adminer
+├── docker-compose.yml       # db + api + web + admin + adminer
 ├── api/CatSitter.Api/       # ASP.NET Core Web API + EF Core migrations
 └── apps/
     ├── web/                 # owner/sitter Vue 3 app (vertical-slice features)
