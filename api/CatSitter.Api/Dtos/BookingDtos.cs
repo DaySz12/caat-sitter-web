@@ -18,7 +18,8 @@ public record BookingDto(
     DateTimeOffset CreatedAt,
     UserDto? Owner,
     UserDto? Sitter,
-    List<CatDto> Cats
+    List<CatDto> Cats,
+    ReviewDto? Review = null
 );
 
 public record CreateBookingRequest(

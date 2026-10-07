@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
+import { RouterLink } from 'vue-router';
 import { bookingApi } from './booking.api';
 import BookingCard from './BookingCard.vue';
 import type { BookingDto, BookingStatus } from '@/shared/types/models';
@@ -64,6 +65,13 @@ watch(activeTab, load);
           >
             ยกเลิก
           </button>
+          <RouterLink
+            v-else-if="b.status === 'completed' && !b.review"
+            :to="`/owner/bookings/${b.id}`"
+            class="px-3 py-1.5 rounded-lg bg-[#FFC857] text-slate-800 text-xs font-semibold"
+          >
+            ⭐ ให้คะแนน
+          </RouterLink>
         </template>
       </BookingCard>
     </div>

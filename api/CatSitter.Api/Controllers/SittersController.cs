@@ -106,6 +106,20 @@ public class SittersController : ControllerBase
         return Ok(sitter.ToDto());
     }
 
+    [HttpGet("{id:guid}/reviews")]
+    [AllowAnonymous]
+    public async Task<ActionResult<List<ReviewDto>>> GetReviews(Guid id)
+    {
+        var reviews = await _db.Reviews
+            .Include(r => r.Reviewer)
+            .Where(r => r.SitterId == id)
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(50)
+            .ToListAsync();
+
+        return Ok(reviews.Select(r => r.ToDto()).ToList());
+    }
+
     [Authorize(Roles = "sitter")]
     [HttpPut("me")]
     public async Task<ActionResult<SitterDto>> UpdateMine(UpdateSitterProfileRequest req)

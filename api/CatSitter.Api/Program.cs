@@ -11,8 +11,13 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? builder.Configuration["ConnectionStrings__Default"]
     ?? "Host=localhost;Port=5432;Database=catsitter;Username=catsitter;Password=catsitter_dev_password";
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString).UseSnakeCaseNamingConvention());
+builder.Services.AddSingleton<LiveEvents>();
+builder.Services.AddSingleton<NotificationPushInterceptor>();
+
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+    options.UseNpgsql(connectionString)
+        .UseSnakeCaseNamingConvention()
+        .AddInterceptors(sp.GetRequiredService<NotificationPushInterceptor>()));
 
 builder.Services.AddSingleton<JwtService>();
 
@@ -37,6 +42,18 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
         ValidateLifetime = true,
         ClockSkew = TimeSpan.FromMinutes(2),
+    };
+
+    // EventSource (the live event stream) can't set headers, so it sends the JWT as a query param.
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var token = context.Request.Query["access_token"].ToString();
+            if (!string.IsNullOrEmpty(token) && context.HttpContext.Request.Path.StartsWithSegments("/api/events"))
+                context.Token = token;
+            return Task.CompletedTask;
+        },
     };
 });
 

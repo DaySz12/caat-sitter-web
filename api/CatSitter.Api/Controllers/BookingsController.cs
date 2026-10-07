@@ -16,6 +16,14 @@ public class BookingsController : ControllerBase
     private readonly AppDbContext _db;
     private static readonly string[] ValidNextStatuses =
         { "confirmed", "in_progress", "completed", "cancelled", "rejected" };
+    private static readonly Dictionary<string, string> StatusChangeTexts = new()
+    {
+        ["confirmed"] = "ได้รับการยืนยันแล้ว",
+        ["in_progress"] = "เริ่มการดูแลแล้ว",
+        ["completed"] = "เสร็จสิ้นแล้ว",
+        ["cancelled"] = "ถูกยกเลิก",
+        ["rejected"] = "ถูกปฏิเสธ",
+    };
 
     public BookingsController(AppDbContext db)
     {
@@ -26,6 +34,16 @@ public class BookingsController : ControllerBase
         .Include(b => b.Owner)
         .Include(b => b.Sitter)
         .Include(b => b.BookingCats).ThenInclude(bc => bc.Cat);
+
+    private async Task<List<BookingDto>> ToDtosWithReviews(List<Booking> bookings)
+    {
+        var ids = bookings.Select(b => b.Id).ToList();
+        var reviews = await _db.Reviews
+            .Include(r => r.Reviewer)
+            .Where(r => ids.Contains(r.BookingId))
+            .ToDictionaryAsync(r => r.BookingId);
+        return bookings.Select(b => b.ToDto(reviews.GetValueOrDefault(b.Id))).ToList();
+    }
 
     /// Bookings where the signed-in user is either the owner or the sitter.
     [HttpGet("mine")]
@@ -40,7 +58,7 @@ public class BookingsController : ControllerBase
         }
 
         var bookings = await query.OrderByDescending(b => b.CreatedAt).ToListAsync();
-        return Ok(bookings.Select(b => b.ToDto()).ToList());
+        return Ok(await ToDtosWithReviews(bookings));
     }
 
     [HttpGet("{id:guid}")]
@@ -50,7 +68,7 @@ public class BookingsController : ControllerBase
         var booking = await BaseQuery().FirstOrDefaultAsync(b => b.Id == id);
         if (booking is null) return NotFound();
         if (booking.OwnerId != userId && booking.SitterId != userId && User.GetRole() != "admin") return Forbid();
-        return Ok(booking.ToDto());
+        return Ok((await ToDtosWithReviews(new List<Booking> { booking }))[0]);
     }
 
     [Authorize(Roles = "owner")]
@@ -131,12 +149,22 @@ public class BookingsController : ControllerBase
         if (req.CancellationReason is not null) booking.CancellationReason = req.CancellationReason;
         booking.UpdatedAt = DateTimeOffset.UtcNow;
 
+        // Finishing the job closes a visit the sitter forgot to check out of.
+        if (req.Status == "completed")
+        {
+            var openVisits = await _db.AttendanceRecords.Where(a => a.BookingId == id && a.CheckOutTime == null).ToListAsync();
+            foreach (var visit in openVisits) visit.CheckOutTime = DateTimeOffset.UtcNow;
+        }
+
         var notifyUserId = userId == booking.OwnerId ? booking.SitterId : booking.OwnerId;
+        var body = req.Status == "completed" && notifyUserId == booking.OwnerId
+            ? $"การจอง {booking.BookingCode} เสร็จสิ้นแล้ว อย่าลืมให้คะแนนพี่เลี้ยงนะ ⭐"
+            : $"การจอง {booking.BookingCode} {StatusChangeTexts[req.Status]}";
         _db.Notifications.Add(new Notification
         {
             UserId = notifyUserId,
             Title = "อัปเดตสถานะการจอง",
-            Body = $"การจอง {booking.BookingCode} เปลี่ยนสถานะเป็น {req.Status}",
+            Body = body,
             Type = "booking_status_changed",
             DataJson = $"{{\"booking_id\":\"{booking.Id}\",\"status\":\"{req.Status}\"}}",
         });

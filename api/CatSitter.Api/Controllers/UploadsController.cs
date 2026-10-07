@@ -14,7 +14,7 @@ public class UploadsController : ControllerBase
 {
     private static readonly HashSet<string> AllowedBuckets = new()
     {
-        "avatars", "cat-images", "sitter-documents", "checklist-photos",
+        "avatars", "cat-images", "sitter-documents", "checklist-photos", "chat-images", "review-photos",
     };
 
     private readonly IWebHostEnvironment _env;

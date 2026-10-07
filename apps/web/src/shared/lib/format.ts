@@ -52,3 +52,23 @@ export function ageDisplay(years: number, months: number): string {
   if (years > 0) return `${years} ปี`;
   return `${months} เดือน`;
 }
+
+export function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+}
+
+export function formatRelativeTime(iso: string): string {
+  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (minutes < 1) return 'เมื่อสักครู่';
+  if (minutes < 60) return `${minutes} นาทีที่แล้ว`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} ชั่วโมงที่แล้ว`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} วันที่แล้ว`;
+  return formatDate(iso);
+}
+
+/** Local calendar date as yyyy-MM-dd, the same shape the API uses for DateOnly values. */
+export function toIsoDate(date: Date | string): string {
+  return new Date(date).toLocaleDateString('sv-SE');
+}

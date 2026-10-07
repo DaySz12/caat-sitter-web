@@ -1,20 +1,30 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { User, MapPin, ShieldCheck, ArrowLeft, Briefcase, Cat as CatIcon } from 'lucide-vue-next';
+import { User, MapPin, ShieldCheck, ArrowLeft, Briefcase, Cat as CatIcon, MessageCircle, Star } from 'lucide-vue-next';
 import { sittersApi } from './sitters.api';
-import type { SitterDto } from '@/shared/types/models';
+import { reviewsApi } from '@/features/reviews/reviews.api';
+import { chatApi } from '@/features/chat/chat.api';
+import ReviewList from '@/features/reviews/ReviewList.vue';
+import type { ReviewDto, SitterDto } from '@/shared/types/models';
 import { formatPerDay } from '@/shared/lib/format';
 import RatingStars from '@/shared/ui/RatingStars.vue';
 
 const route = useRoute();
 const router = useRouter();
 const sitter = ref<SitterDto | null>(null);
+const reviews = ref<ReviewDto[]>([]);
 const isLoading = ref(true);
+
+async function openChat() {
+  if (!sitter.value) return;
+  const room = await chatApi.start(sitter.value.id);
+  router.push(`/owner/chat/${room.id}`);
+}
 
 onMounted(async () => {
   const id = route.params.id as string;
-  sitter.value = await sittersApi.getById(id);
+  [sitter.value, reviews.value] = await Promise.all([sittersApi.getById(id), reviewsApi.forSitter(id)]);
   isLoading.value = false;
 });
 </script>
@@ -27,7 +37,8 @@ onMounted(async () => {
 
     <div v-if="isLoading" class="text-center py-16 text-slate-400 text-sm">กำลังโหลด...</div>
 
-    <div v-else-if="sitter" class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+    <div v-else-if="sitter" class="space-y-5">
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
       <div class="h-24 bg-gradient-to-r from-[#FF7A59] to-[#FFC857]"></div>
       <div class="px-6 pb-6">
         <div class="-mt-10 mb-3">
@@ -76,14 +87,32 @@ onMounted(async () => {
             <p class="text-xs text-slate-400">อัตราค่าบริการ</p>
             <p class="text-xl font-bold text-[#FF7A59]">{{ formatPerDay(sitter.pricePerDay) }}</p>
           </div>
-          <button
-            class="flex items-center gap-2 px-5 py-3 rounded-xl bg-[#FF7A59] hover:bg-[#E05638] text-white font-semibold text-sm"
-            @click="router.push(`/owner/booking/new?sitterId=${sitter.id}`)"
-          >
-            <CatIcon class="w-4 h-4" /> จองบริการ
-          </button>
+          <div class="flex gap-2">
+            <button
+              class="flex items-center gap-2 px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm"
+              @click="openChat"
+            >
+              <MessageCircle class="w-4 h-4" /> <span class="hidden sm:inline">ส่งข้อความ</span>
+            </button>
+            <button
+              class="flex items-center gap-2 px-5 py-3 rounded-xl bg-[#FF7A59] hover:bg-[#E05638] text-white font-semibold text-sm"
+              @click="router.push(`/owner/booking/new?sitterId=${sitter.id}`)"
+            >
+              <CatIcon class="w-4 h-4" /> จองบริการ
+            </button>
+          </div>
         </div>
       </div>
+    </div>
+
+    <section class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-semibold text-slate-800 flex items-center gap-2"><Star class="w-5 h-5 text-[#FFC857]" /> รีวิวจากเจ้าของแมว</h2>
+        <span v-if="reviews.length" class="text-sm text-slate-500">{{ sitter.ratingAvg.toFixed(1) }} · {{ sitter.reviewCount }} รีวิว</span>
+      </div>
+      <ReviewList v-if="reviews.length" :reviews="reviews" />
+      <p v-else class="text-sm text-slate-500 text-center py-6">ยังไม่มีรีวิว</p>
+    </section>
     </div>
   </div>
 </template>

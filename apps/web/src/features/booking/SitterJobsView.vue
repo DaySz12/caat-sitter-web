@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
+import { RouterLink } from 'vue-router';
 import { bookingApi } from './booking.api';
 import BookingCard from './BookingCard.vue';
 import type { BookingDto } from '@/shared/types/models';
@@ -67,14 +68,18 @@ watch(activeTab, load);
           >
             เริ่มดูแล
           </button>
-          <button
-            v-else-if="b.status === 'in_progress'"
-            :disabled="busyId === b.id"
-            class="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold disabled:opacity-50"
-            @click="advance(b, 'completed')"
-          >
-            เสร็จสิ้นงาน
-          </button>
+          <div v-else-if="b.status === 'in_progress'" class="flex gap-2">
+            <RouterLink :to="`/sitter/jobs/${b.id}`" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold">
+              บันทึกการดูแล
+            </RouterLink>
+            <button
+              :disabled="busyId === b.id"
+              class="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold disabled:opacity-50"
+              @click="advance(b, 'completed')"
+            >
+              เสร็จสิ้นงาน
+            </button>
+          </div>
         </template>
       </BookingCard>
     </div>

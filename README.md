@@ -97,6 +97,13 @@ Created automatically by `api/CatSitter.Api/Services/DemoSeeder.cs` on an empty 
 | Admin | `admin@test.com` |
 | Owner | `owner@test.com` |
 | Sitter | `sitter@test.com` (pre-approved & verified, so it shows up in owner search) |
+| Owner | `owner2@test.com` (sample reviewer) |
+| Sitter | `sitter2@test.com`, `sitter3@test.com`, `sitter4@test.com` (sample sitters with GPS + prices) |
+
+The seeder also gives these accounts sample content — cats, bookings in every status
+(including one in progress today with a care log), reviews, chats and notifications — so
+every page has something to show. It runs once, while `owner@test.com` and `sitter@test.com`
+have no cats or bookings, and only touches the accounts above.
 
 ## What's implemented vs. pending
 
@@ -108,16 +115,26 @@ Created automatically by `api/CatSitter.Api/Services/DemoSeeder.cs` on an empty 
 - Sitter: profile editing (bio, price, GPS location, service photos, socials, availability),
   incoming booking requests (accept/reject), job pipeline (confirmed → in progress → completed)
 - Photo uploads (avatar, cat photo, sitter portfolio) via the API's local `/uploads` storage
+- Booking detail page for both sides (cats' diet/health notes, price breakdown, actions)
+- Daily care log (`CareController`): sitter check-in/check-out with optional GPS, photo and note,
+  an auto-created daily checklist with per-task photos; the owner sees it live and gets notified
+- Reviews (`ReviewsController`): owners rate completed bookings (with up to 4 photos); this keeps
+  the sitter's `RatingAvg` / `ReviewCount` current, which Smart Matching ranks on
+- Chat (`ChatController`): one room per owner/sitter pair, text + images
+- Notifications page, pop-up toasts and sidebar badges (unread notifications/messages, pending
+  requests), backed by `GET /api/users/me/summary`
+- Live updates over Server-Sent Events (`GET /api/events`, `LiveEvents`): new notifications, chat
+  messages and care-log changes are pushed to the browser as they happen. Pages keep a slow poll
+  as a fallback. The event fan-out is in-memory, so it assumes a single API instance.
 
 **Admin portal** (Vue 3, `apps/admin`, ↔ `AdminController`):
 - Dashboard KPIs (users, revenue, pending sitters, active/total bookings, recent bookings)
 - Sitter verification queue (approve/reject with reason, notifies the sitter)
 - All-bookings table with filters, user management (suspend/reinstate), service-fee setting
 
-**Schema exists, API/UI pending** (tables + EF Core entities are already migrated):
-- Checklists, attendance check-in/out, reviews, chat, notifications — these tables are in
-  the EF Core model (`api/CatSitter.Api/Entities`) and migration, but have no controllers
-  or UI yet.
+**Pending:**
+- Real payments — `PaymentStatus` is never updated by the API, and `WalletBalance` is never
+  credited. Sitter earnings shown in the app are computed from completed bookings' base price.
 
 ## Repo layout
 
