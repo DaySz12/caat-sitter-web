@@ -32,6 +32,7 @@ public class AdminController : ControllerBase
         var totalRevenue = bookingStats.Where(b => b.PaymentStatus == "paid").Sum(b => b.TotalPrice);
         var activeBookings = bookingStats.Count(b => b.Status == "confirmed" || b.Status == "in_progress");
         var pendingPayments = bookingStats.Count(b => b.PaymentStatus == "pending_verification");
+        var pendingPayouts = await _db.PayoutRequests.CountAsync(p => p.Status == "pending");
 
         var recent = await _db.Bookings
             .Include(b => b.Owner)
@@ -45,7 +46,7 @@ public class AdminController : ControllerBase
             ))
             .ToListAsync();
 
-        return Ok(new AdminDashboardDto(totalUsers, totalRevenue, pendingSitters, pendingPayments, bookingStats.Count, activeBookings, recent));
+        return Ok(new AdminDashboardDto(totalUsers, totalRevenue, pendingSitters, pendingPayments, pendingPayouts, bookingStats.Count, activeBookings, recent));
     }
 
     [HttpGet("sitters")]
@@ -292,5 +293,155 @@ public class AdminController : ControllerBase
 
         await _db.SaveChangesAsync();
         return Ok(new AdminServiceFeeDto(fee.Percentage));
+    }
+
+    [HttpGet("payouts")]
+    public async Task<ActionResult<List<AdminPayoutDto>>> GetPayouts([FromQuery] string status = "all")
+    {
+        var query = _db.PayoutRequests.Include(p => p.Sitter).AsQueryable();
+
+        if (status != "all")
+        {
+            query = query.Where(p => p.Status == status);
+        }
+
+        var list = await query
+            .OrderByDescending(p => p.CreatedAt)
+            .Select(p => new AdminPayoutDto(
+                p.Id,
+                p.SitterId,
+                p.Amount,
+                p.BankName,
+                p.BankAccountNumber,
+                p.BankAccountName,
+                p.PromptPayNumber,
+                p.Status,
+                p.AdminNotes,
+                p.TransferSlipUrl,
+                p.CreatedAt,
+                p.ProcessedAt,
+                p.Sitter == null ? null : new AdminUserContactDto(p.Sitter.Name, p.Sitter.Email, p.Sitter.Phone, p.Sitter.AvatarUrl)
+            ))
+            .ToListAsync();
+
+        return Ok(list);
+    }
+
+    [HttpPost("payouts/{id:guid}/approve")]
+    public async Task<IActionResult> ApprovePayout(Guid id, AdminApprovePayoutRequest? req)
+    {
+        var payout = await _db.PayoutRequests.Include(p => p.Sitter).FirstOrDefaultAsync(p => p.Id == id);
+        if (payout is null) return NotFound(new { message = "ไม่พบคำขอถอนเงินนี้" });
+
+        if (payout.Status != "pending")
+            return BadRequest(new { message = "คำขอนี้ได้รับการประมวลผลไปแล้ว" });
+
+        payout.Status = "completed";
+        payout.TransferSlipUrl = req?.TransferSlipUrl;
+        payout.ProcessedAt = DateTimeOffset.UtcNow;
+
+        _db.Notifications.Add(new Notification
+        {
+            UserId = payout.SitterId,
+            Title = "โอนเงินเข้าบัญชีสำเร็จ 🎉",
+            Body = $"ยอดเงิน ฿{payout.Amount:N0} ได้รับการโอนเข้าบัญชี {payout.BankName} ({payout.BankAccountNumber}) เรียบร้อยแล้ว",
+            Type = "payout_completed",
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "อนุมัติและบันทึกการโอนเงินสำเร็จ" });
+    }
+
+    [HttpPost("payouts/{id:guid}/reject")]
+    public async Task<IActionResult> RejectPayout(Guid id, AdminRejectPayoutRequest req)
+    {
+        var payout = await _db.PayoutRequests.Include(p => p.Sitter).FirstOrDefaultAsync(p => p.Id == id);
+        if (payout is null) return NotFound(new { message = "ไม่พบคำขอถอนเงินนี้" });
+
+        if (payout.Status != "pending")
+            return BadRequest(new { message = "คำขอนี้ได้รับการประมวลผลไปแล้ว" });
+
+        payout.Status = "rejected";
+        payout.AdminNotes = req.Reason;
+        payout.ProcessedAt = DateTimeOffset.UtcNow;
+
+        // Refund the amount back to sitter's wallet balance
+        if (payout.Sitter is not null)
+        {
+            payout.Sitter.WalletBalance += payout.Amount;
+            payout.Sitter.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+
+        _db.Notifications.Add(new Notification
+        {
+            UserId = payout.SitterId,
+            Title = "คำขอถอนเงินถูกปฏิเสธ",
+            Body = $"คำขอถอนเงิน ฿{payout.Amount:N0} ถูกปฏิเสธ (เหตุผล: {req.Reason}) ระบบได้คืนยอดเงินกลับเข้ากระเป๋าของคุณแล้ว",
+            Type = "payout_rejected",
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "ปฏิเสธคำขอและคืนยอดเงินให้พี่เลี้ยงเรียบร้อยแล้ว" });
+    }
+
+    [HttpGet("settings/payment-info")]
+    public async Task<ActionResult<PlatformPaymentSettingDto>> GetPlatformPaymentSetting()
+    {
+        var setting = await _db.PlatformPaymentSettings.FirstOrDefaultAsync();
+        if (setting is null)
+        {
+            return Ok(new PlatformPaymentSettingDto(
+                "กสิกรไทย (KBANK)",
+                "123-2-88990-0",
+                "บจก. แคท ซิตเตอร์ (ไทยแลนด์)",
+                "010-5-56600-0000",
+                "บจก. แคท ซิตเตอร์ (ไทยแลนด์)"
+            ));
+        }
+
+        return Ok(new PlatformPaymentSettingDto(
+            setting.BankName,
+            setting.BankAccountNumber,
+            setting.BankAccountName,
+            setting.PromptPayNumber,
+            setting.PromptPayName
+        ));
+    }
+
+    [HttpPut("settings/payment-info")]
+    public async Task<ActionResult<PlatformPaymentSettingDto>> UpdatePlatformPaymentSetting(UpdatePlatformPaymentSettingRequest req)
+    {
+        var setting = await _db.PlatformPaymentSettings.FirstOrDefaultAsync();
+        if (setting is null)
+        {
+            setting = new PlatformPaymentSetting
+            {
+                BankName = req.BankName.Trim(),
+                BankAccountNumber = req.BankAccountNumber.Trim(),
+                BankAccountName = req.BankAccountName.Trim(),
+                PromptPayNumber = req.PromptPayNumber.Trim(),
+                PromptPayName = req.PromptPayName.Trim(),
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            _db.PlatformPaymentSettings.Add(setting);
+        }
+        else
+        {
+            setting.BankName = req.BankName.Trim();
+            setting.BankAccountNumber = req.BankAccountNumber.Trim();
+            setting.BankAccountName = req.BankAccountName.Trim();
+            setting.PromptPayNumber = req.PromptPayNumber.Trim();
+            setting.PromptPayName = req.PromptPayName.Trim();
+            setting.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+
+        await _db.SaveChangesAsync();
+        return Ok(new PlatformPaymentSettingDto(
+            setting.BankName,
+            setting.BankAccountNumber,
+            setting.BankAccountName,
+            setting.PromptPayNumber,
+            setting.PromptPayName
+        ));
     }
 }

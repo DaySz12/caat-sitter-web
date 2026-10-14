@@ -24,8 +24,9 @@ const detailPath = computed(() => bookingDetailPath(props.perspective, props.boo
             {{ perspective === 'owner' ? booking.sitter?.name : booking.owner?.name }}
           </p>
         </div>
-        <div class="flex items-center gap-1">
+        <div class="flex items-center gap-1.5 flex-wrap justify-end">
           <StatusBadge :status="booking.status" />
+          <StatusBadge :status="booking.paymentStatus" />
           <ChevronRight class="w-4 h-4 text-slate-300" />
         </div>
       </div>
@@ -48,7 +49,16 @@ const detailPath = computed(() => bookingDetailPath(props.perspective, props.boo
         <p class="font-bold text-[#FF7A59]">{{ formatCurrency(booking.totalPrice) }}</p>
         <RatingStars v-if="booking.review" :rating="booking.review.rating" :size="12" />
       </div>
-      <slot name="actions" :booking="booking" />
+      <div class="flex items-center gap-2">
+        <RouterLink
+          v-if="perspective === 'owner' && booking.paymentStatus === 'unpaid' && booking.status !== 'cancelled' && booking.status !== 'rejected'"
+          :to="detailPath"
+          class="px-2.5 py-1 rounded-lg bg-orange-50 text-[#FF7A59] border border-orange-200 text-xs font-semibold hover:bg-orange-100 transition"
+        >
+          💳 ชำระเงิน
+        </RouterLink>
+        <slot name="actions" :booking="booking" />
+      </div>
     </div>
   </div>
 </template>

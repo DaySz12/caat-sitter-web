@@ -16,7 +16,8 @@ import {
   Bell,
   ShieldCheck,
   Image as ImageIcon,
-  CreditCard
+  CreditCard,
+  Banknote
 } from 'lucide-vue-next';
 
 const authStore = useAuthStore();
@@ -26,10 +27,12 @@ const route = useRoute();
 const isSidebarOpen = ref(false);
 const pendingSittersCount = ref(0);
 const pendingPaymentsCount = ref(0);
+const pendingPayoutsCount = ref(0);
 
 const navItems = [
   { name: 'แดชบอร์ดภาพรวม', path: '/dashboard', icon: LayoutDashboard },
   { name: 'ตรวจสอบการชำระเงิน', path: '/payments', icon: CreditCard, badgeType: 'payments' },
+  { name: 'คำขอถอนเงิน', path: '/payouts', icon: Banknote, badgeType: 'payouts' },
   { name: 'ตรวจสอบ Sitter', path: '/sitters/verification', icon: UserCheck, badgeType: 'sitters' },
   { name: 'จัดการการจอง', path: '/bookings', icon: CalendarCheck },
   { name: 'จัดการผู้ใช้งาน', path: '/users', icon: Users },
@@ -39,9 +42,10 @@ const navItems = [
 
 async function fetchPendingCount() {
   try {
-    const dashboard = await api.get<{ pending_sitters: number; pending_payments: number }>('/api/admin/dashboard');
+    const dashboard = await api.get<{ pending_sitters: number; pending_payments: number; pending_payouts: number }>('/api/admin/dashboard');
     pendingSittersCount.value = dashboard.pending_sitters || 0;
     pendingPaymentsCount.value = dashboard.pending_payments || 0;
+    pendingPayoutsCount.value = dashboard.pending_payouts || 0;
   } catch (e) {
     console.error('Error fetching pending counts:', e);
   }
@@ -131,6 +135,12 @@ onMounted(() => {
             class="px-2 py-0.5 text-xs font-bold rounded-full bg-amber-500 text-white animate-pulse"
           >
             {{ pendingPaymentsCount }}
+          </span>
+          <span
+            v-else-if="item.badgeType === 'payouts' && pendingPayoutsCount > 0"
+            class="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-500 text-white animate-pulse"
+          >
+            {{ pendingPayoutsCount }}
           </span>
         </RouterLink>
       </div>

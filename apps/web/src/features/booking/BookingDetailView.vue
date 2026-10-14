@@ -42,6 +42,14 @@ const isUploadingSlip = ref(false);
 const slipError = ref<string | null>(null);
 const copiedField = ref<string | null>(null);
 
+const platformPaymentInfo = ref({
+  bankName: 'กสิกรไทย (KBANK)',
+  bankAccountNumber: '123-2-88990-0',
+  bankAccountName: 'บจก. แคท ซิตเตอร์ (ไทยแลนด์)',
+  promptPayNumber: '010-5-56600-0000',
+  promptPayName: 'บจก. แคท ซิตเตอร์ (ไทยแลนด์)',
+});
+
 const isSitter = computed(() => auth.user?.role === 'sitter');
 const other = computed(() => (isSitter.value ? booking.value?.owner : booking.value?.sitter));
 // Past bookings only show the care log when one was actually kept.
@@ -51,9 +59,26 @@ const showCare = computed(() => {
   return booking.value.status === 'completed' && (care.value.attendance.length > 0 || care.value.checklists.length > 0);
 });
 
+async function loadPaymentSettings() {
+  try {
+    const data = await api.get<{
+      bankName: string;
+      bankAccountNumber: string;
+      bankAccountName: string;
+      promptPayNumber: string;
+      promptPayName: string;
+    }>('/api/settings/payment-info');
+    if (data) platformPaymentInfo.value = data;
+  } catch (e) {
+    // fallback to defaults
+  }
+}
+
 async function load() {
   const id = route.params.id as string;
-  [booking.value, care.value] = await Promise.all([bookingApi.getById(id), careApi.get(id)]);
+  const [b, c] = await Promise.all([bookingApi.getById(id), careApi.get(id), loadPaymentSettings()]);
+  booking.value = b;
+  care.value = c;
   isLoading.value = false;
 }
 
@@ -170,10 +195,10 @@ function createDemoSlipFile(): File {
   ctx.fillText('ไปยัง:', 40, 245);
   ctx.fillStyle = '#1e293b';
   ctx.font = 'bold 14px sans-serif';
-  ctx.fillText('บริษัท แคท ซิตเตอร์ จำกัด', 40, 268);
+  ctx.fillText(platformPaymentInfo.value.bankAccountName || 'บริษัท แคท ซิตเตอร์ จำกัด', 40, 268);
   ctx.font = '13px sans-serif';
   ctx.fillStyle = '#475569';
-  ctx.fillText('พร้อมเพย์ 010-5-56600-0000', 40, 290);
+  ctx.fillText(`พร้อมเพย์ ${platformPaymentInfo.value.promptPayNumber}`, 40, 290);
 
   ctx.fillStyle = '#64748b';
   ctx.fillText('รหัสการจอง:', 40, 335);
@@ -540,13 +565,13 @@ onMounted(load);
             <div class="p-4 flex flex-col items-center">
               <div class="bg-white p-2 rounded-xl border border-slate-200 shadow-xs mb-3">
                 <img
-                  :src="`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=PROMPTPAY:0105566000000:AMOUNT:${booking.totalPrice}:REF:${booking.bookingCode}`"
+                  :src="`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=PROMPTPAY:${platformPaymentInfo.promptPayNumber.replace(/-/g, '')}:AMOUNT:${booking.totalPrice}:REF:${booking.bookingCode}`"
                   alt="PromptPay QR Code"
                   class="w-44 h-44 object-contain rounded"
                 />
               </div>
               <p class="text-xs font-semibold text-slate-700">สแกน QR Code ด้วย Mobile Banking ทุกธนาคาร</p>
-              <p class="text-xs text-slate-400 mt-0.5">ชื่อบัญชี: บจก. แคท ซิตเตอร์ (ไทยแลนด์)</p>
+              <p class="text-xs text-slate-400 mt-0.5">ชื่อบัญชี: {{ platformPaymentInfo.promptPayName }}</p>
             </div>
           </div>
 
@@ -555,15 +580,15 @@ onMounted(load);
             <p class="font-semibold text-slate-800 text-sm">หรือโอนผ่านบัญชีธนาคาร</p>
             <div class="flex items-center justify-between text-slate-600">
               <span>ธนาคาร:</span>
-              <span class="font-medium text-slate-800">กสิกรไทย (KBANK)</span>
+              <span class="font-medium text-slate-800">{{ platformPaymentInfo.bankName }}</span>
             </div>
             <div class="flex items-center justify-between text-slate-600">
               <span>เลขที่บัญชี:</span>
               <div class="flex items-center gap-2">
-                <span class="font-mono font-bold text-slate-900 text-sm">123-2-88990-0</span>
+                <span class="font-mono font-bold text-slate-900 text-sm">{{ platformPaymentInfo.bankAccountNumber }}</span>
                 <button
                   type="button"
-                  @click="copyText('1232889900', 'acc')"
+                  @click="copyText(platformPaymentInfo.bankAccountNumber.replace(/-/g, ''), 'acc')"
                   class="p-1 rounded bg-white border border-slate-200 text-slate-600 hover:text-slate-900 cursor-pointer"
                   title="คัดลอกเลขบัญชี"
                 >
@@ -574,7 +599,7 @@ onMounted(load);
             </div>
             <div class="flex items-center justify-between text-slate-600">
               <span>ชื่อบัญชี:</span>
-              <span class="font-medium text-slate-800">บจก. แคท ซิตเตอร์ (ไทยแลนด์)</span>
+              <span class="font-medium text-slate-800">{{ platformPaymentInfo.bankAccountName }}</span>
             </div>
           </div>
 

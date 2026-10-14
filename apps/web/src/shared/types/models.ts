@@ -181,3 +181,26 @@ export interface BannerDto {
   createdAt: string;
 }
 
+export interface PayoutDto {
+  id: string;
+  sitterId: string;
+  amount: number;
+  bankName: string;
+  bankAccountNumber: string;
+  bankAccountName: string;
+  promptPayNumber?: string | null;
+  status: 'pending' | 'completed' | 'rejected';
+  adminNotes?: string | null;
+  transferSlipUrl?: string | null;
+  createdAt: string;
+  processedAt?: string | null;
+}
+
+export interface PlatformPaymentSettingDto {
+  bankName: string;
+  bankAccountNumber: string;
+  bankAccountName: string;
+  promptPayNumber: string;
+  promptPayName: string;
+}
+

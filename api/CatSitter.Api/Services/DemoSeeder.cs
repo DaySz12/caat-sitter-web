@@ -16,6 +16,7 @@ public static class DemoSeeder
         SeedAccounts(db);
         SeedDemoContent(db);
         SeedBanners(db);
+        SeedPlatformSettings(db);
     }
 
     // Runs only while the users table is empty.
@@ -369,5 +370,39 @@ public static class DemoSeeder
             }
         );
         db.SaveChanges();
+    }
+
+    private static void SeedPlatformSettings(AppDbContext db)
+    {
+        if (!db.PlatformPaymentSettings.Any())
+        {
+            db.PlatformPaymentSettings.Add(new PlatformPaymentSetting
+            {
+                BankName = "กสิกรไทย (KBANK)",
+                BankAccountNumber = "123-2-88990-0",
+                BankAccountName = "บจก. แคท ซิตเตอร์ (ไทยแลนด์)",
+                PromptPayNumber = "010-5-56600-0000",
+                PromptPayName = "บจก. แคท ซิตเตอร์ (ไทยแลนด์)",
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+            db.SaveChanges();
+        }
+
+        var sitter = db.Users.FirstOrDefault(u => u.Email == "sitter@test.com" || u.Email == "sitter2@test.com");
+        if (sitter != null && !db.PayoutRequests.Any())
+        {
+            db.PayoutRequests.Add(new PayoutRequest
+            {
+                SitterId = sitter.Id,
+                Amount = 1500m,
+                BankName = "ไทยพาณิชย์ (SCB)",
+                BankAccountNumber = "408-1-23456-7",
+                BankAccountName = sitter.Name,
+                PromptPayNumber = "081-234-5678",
+                Status = "pending",
+                CreatedAt = DateTimeOffset.UtcNow.AddHours(-3)
+            });
+            db.SaveChanges();
+        }
     }
 }

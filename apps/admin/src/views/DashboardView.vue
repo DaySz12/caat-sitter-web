@@ -9,7 +9,8 @@ import {
   Clock,
   CheckCircle2,
   ArrowUpRight,
-  CreditCard
+  CreditCard,
+  Banknote
 } from 'lucide-vue-next';
 
 interface Stats {
@@ -17,6 +18,7 @@ interface Stats {
   totalRevenue: number;
   pendingSitters: number;
   pendingPayments: number;
+  pendingPayouts: number;
   totalUsers: number;
   activeBookings: number;
 }
@@ -26,6 +28,7 @@ const stats = ref<Stats>({
   totalRevenue: 0,
   pendingSitters: 0,
   pendingPayments: 0,
+  pendingPayouts: 0,
   totalUsers: 0,
   activeBookings: 0,
 });
@@ -41,6 +44,7 @@ async function loadDashboardData() {
       total_revenue: number;
       pending_sitters: number;
       pending_payments: number;
+      pending_payouts: number;
       total_bookings: number;
       active_bookings: number;
       recent_bookings: any[];
@@ -51,6 +55,7 @@ async function loadDashboardData() {
       totalRevenue: data.total_revenue,
       pendingSitters: data.pending_sitters,
       pendingPayments: data.pending_payments || 0,
+      pendingPayouts: data.pending_payouts || 0,
       totalUsers: data.total_users,
       activeBookings: data.active_bookings,
     };
@@ -109,6 +114,17 @@ onMounted(() => {
             <span>สลิปรอตรวจสอบ</span>
             <span v-if="stats.pendingPayments > 0" class="px-2 py-0.5 text-xs bg-white text-amber-700 rounded-full font-bold">
               {{ stats.pendingPayments }}
+            </span>
+          </RouterLink>
+
+          <RouterLink
+            to="/payouts"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-all shadow-md shadow-emerald-600/20"
+          >
+            <Banknote class="w-4 h-4" />
+            <span>คำขอถอนเงิน</span>
+            <span v-if="stats.pendingPayouts > 0" class="px-2 py-0.5 text-xs bg-white text-emerald-700 rounded-full font-bold">
+              {{ stats.pendingPayouts }}
             </span>
           </RouterLink>
 

@@ -539,6 +539,118 @@ namespace CatSitter.Api.Migrations
                     b.ToTable("notifications", (string)null);
                 });
 
+            modelBuilder.Entity("CatSitter.Api.Entities.PayoutRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AdminNotes")
+                        .HasColumnType("text")
+                        .HasColumnName("admin_notes");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<string>("BankAccountName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("bank_account_name");
+
+                    b.Property<string>("BankAccountNumber")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("bank_account_number");
+
+                    b.Property<string>("BankName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("bank_name");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.Property<string>("PromptPayNumber")
+                        .HasColumnType("text")
+                        .HasColumnName("prompt_pay_number");
+
+                    b.Property<Guid>("SitterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sitter_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TransferSlipUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("transfer_slip_url");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payout_requests");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_payout_requests_created_at");
+
+                    b.HasIndex("SitterId")
+                        .HasDatabaseName("ix_payout_requests_sitter_id");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_payout_requests_status");
+
+                    b.ToTable("payout_requests", (string)null);
+                });
+
+            modelBuilder.Entity("CatSitter.Api.Entities.PlatformPaymentSetting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BankAccountName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("bank_account_name");
+
+                    b.Property<string>("BankAccountNumber")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("bank_account_number");
+
+                    b.Property<string>("BankName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("bank_name");
+
+                    b.Property<string>("PromptPayName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("prompt_pay_name");
+
+                    b.Property<string>("PromptPayNumber")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("prompt_pay_number");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_platform_payment_settings");
+
+                    b.ToTable("platform_payment_settings", (string)null);
+                });
+
             modelBuilder.Entity("CatSitter.Api.Entities.Review", b =>
                 {
                     b.Property<Guid>("Id")
@@ -870,6 +982,18 @@ namespace CatSitter.Api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_messages_chat_rooms_room_id");
+                });
+
+            modelBuilder.Entity("CatSitter.Api.Entities.PayoutRequest", b =>
+                {
+                    b.HasOne("CatSitter.Api.Entities.User", "Sitter")
+                        .WithMany()
+                        .HasForeignKey("SitterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_payout_requests_users_sitter_id");
+
+                    b.Navigation("Sitter");
                 });
 
             modelBuilder.Entity("CatSitter.Api.Entities.Review", b =>

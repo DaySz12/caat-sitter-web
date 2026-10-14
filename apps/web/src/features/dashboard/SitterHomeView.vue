@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { ClipboardList, Briefcase, ArrowRight, ShieldAlert, Wallet, Star } from 'lucide-vue-next';
+import { ClipboardList, Briefcase, ArrowRight, ShieldAlert, Wallet, Star, Banknote } from 'lucide-vue-next';
 import { useAuthStore } from '@/features/auth/auth.store';
 import { useSummaryStore } from '@/features/notifications/summary.store';
 import { bookingApi } from '@/features/booking/booking.api';
@@ -9,7 +9,8 @@ import { sittersApi } from '@/features/sitters/sitters.api';
 import { reviewsApi } from '@/features/reviews/reviews.api';
 import BookingCard from '@/features/booking/BookingCard.vue';
 import ReviewList from '@/features/reviews/ReviewList.vue';
-import type { BookingDto, ReviewDto, SitterDto } from '@/shared/types/models';
+import PayoutModal from '@/features/payouts/PayoutModal.vue';
+import type { BookingDto, ReviewDto, SitterDto, PayoutDto } from '@/shared/types/models';
 import { formatCurrency } from '@/shared/lib/format';
 import StatTile from '@/shared/ui/StatTile.vue';
 
@@ -20,6 +21,13 @@ const pendingRequests = ref<BookingDto[]>([]);
 const activeJobs = ref<BookingDto[]>([]);
 const profile = ref<SitterDto | null>(null);
 const reviews = ref<ReviewDto[]>([]);
+const isPayoutModalOpen = ref(false);
+
+function onPayoutSubmitted(payout: PayoutDto) {
+  if (auth.user) {
+    auth.user.walletBalance = Math.max(0, auth.user.walletBalance - payout.amount);
+  }
+}
 
 onMounted(async () => {
   const sitterId = auth.user!.id;
@@ -50,9 +58,27 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div class="bg-gradient-to-r from-[#1E2238] to-[#2E3456] rounded-2xl p-6 text-white mb-6">
-      <h1 class="text-xl font-bold">สวัสดี, {{ auth.user?.name }} 👋</h1>
-      <p class="text-sm opacity-90 mt-1">คุณมีคำขอจองใหม่ {{ pendingRequests.length }} รายการรออนุมัติ</p>
+    <!-- Sitter Welcome Banner with Wallet Widget -->
+    <div class="bg-gradient-to-r from-[#1E2238] to-[#2E3456] rounded-2xl p-6 text-white mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-xl font-bold">สวัสดี, {{ auth.user?.name }} 👋</h1>
+        <p class="text-sm opacity-90 mt-1">คุณมีคำขอจองใหม่ {{ pendingRequests.length }} รายการรออนุมัติ</p>
+      </div>
+
+      <div class="flex items-center gap-3 bg-white/10 backdrop-blur-xs px-4 py-3 rounded-xl border border-white/15 self-start sm:self-auto">
+        <div>
+          <span class="text-[11px] text-slate-300 block">ยอดเงินในกระเป๋า</span>
+          <span class="text-xl font-black text-emerald-400">{{ formatCurrency(auth.user?.walletBalance ?? 0) }}</span>
+        </div>
+        <button
+          type="button"
+          id="btn-open-sitter-payout"
+          @click="isPayoutModalOpen = true"
+          class="px-3.5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-1.5"
+        >
+          <Banknote class="w-4 h-4" /> ถอนเงิน
+        </button>
+      </div>
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -106,5 +132,13 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    <!-- Payout Request Modal -->
+    <PayoutModal
+      :is-open="isPayoutModalOpen"
+      :wallet-balance="auth.user?.walletBalance ?? 0"
+      @close="isPayoutModalOpen = false"
+      @submitted="onPayoutSubmitted"
+    />
   </div>
 </template>
