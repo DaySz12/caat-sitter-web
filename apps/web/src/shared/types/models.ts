@@ -13,6 +13,13 @@ export interface UserDto {
   status: AccountStatus;
   walletBalance: number;
   createdAt: string;
+  address?: string | null;
+  buildingNote?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  lineId?: string | null;
+  secondaryPhone?: string | null;
+  emergencyContactName?: string | null;
 }
 
 export interface CatDto {

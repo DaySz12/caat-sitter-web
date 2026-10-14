@@ -869,9 +869,17 @@ namespace CatSitter.Api.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("Address")
+                        .HasColumnType("text")
+                        .HasColumnName("address");
+
                     b.Property<string>("AvatarUrl")
                         .HasColumnType("text")
                         .HasColumnName("avatar_url");
+
+                    b.Property<string>("BuildingNote")
+                        .HasColumnType("text")
+                        .HasColumnName("building_note");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -881,6 +889,22 @@ namespace CatSitter.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("email");
+
+                    b.Property<string>("EmergencyContactName")
+                        .HasColumnType("text")
+                        .HasColumnName("emergency_contact_name");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("latitude");
+
+                    b.Property<string>("LineId")
+                        .HasColumnType("text")
+                        .HasColumnName("line_id");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("longitude");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -904,6 +928,10 @@ namespace CatSitter.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("role");
+
+                    b.Property<string>("SecondaryPhone")
+                        .HasColumnType("text")
+                        .HasColumnName("secondary_phone");
 
                     b.Property<string>("Status")
                         .IsRequired()

@@ -6,6 +6,19 @@ export interface AuthResponse {
   user: UserDto;
 }
 
+export interface UpdateProfileParams {
+  name?: string;
+  phone?: string;
+  avatarUrl?: string;
+  address?: string;
+  buildingNote?: string;
+  latitude?: number;
+  longitude?: number;
+  lineId?: string;
+  secondaryPhone?: string;
+  emergencyContactName?: string;
+}
+
 export const authApi = {
   login: (email: string, password: string) =>
     api.post<AuthResponse>('/api/auth/login', { email, password }),
@@ -15,6 +28,9 @@ export const authApi = {
 
   me: () => api.get<UserDto>('/api/auth/me'),
 
-  updateProfile: (params: { name?: string; phone?: string; avatarUrl?: string }) =>
+  updateProfile: (params: UpdateProfileParams) =>
     api.put<UserDto>('/api/users/me', params),
+
+  changePassword: (params: { currentPassword: string; newPassword: string }) =>
+    api.post<{ message: string }>('/api/users/me/change-password', params),
 };

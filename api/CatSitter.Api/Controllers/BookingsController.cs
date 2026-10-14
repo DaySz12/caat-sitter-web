@@ -95,11 +95,14 @@ public class BookingsController : ControllerBase
         var serviceFee = Math.Round(basePrice * 0.10m, 2);
         var totalPrice = basePrice + serviceFee;
 
+        var owner = await _db.Users.FindAsync(ownerId);
         var firstCat = cats.FirstOrDefault();
-        var serviceAddress = string.IsNullOrWhiteSpace(req.ServiceAddress) ? null : req.ServiceAddress.Trim();
-        var emergencyPhone = string.IsNullOrWhiteSpace(req.EmergencyContactPhone) 
-            ? firstCat?.EmergencyContactPhone 
-            : req.EmergencyContactPhone.Trim();
+        var serviceAddress = !string.IsNullOrWhiteSpace(req.ServiceAddress) 
+            ? req.ServiceAddress.Trim() 
+            : owner?.Address;
+        var emergencyPhone = !string.IsNullOrWhiteSpace(req.EmergencyContactPhone) 
+            ? req.EmergencyContactPhone.Trim() 
+            : (!string.IsNullOrWhiteSpace(firstCat?.EmergencyContactPhone) ? firstCat.EmergencyContactPhone : owner?.SecondaryPhone);
         var vetClinic = string.IsNullOrWhiteSpace(req.PreferredVetClinic) 
             ? firstCat?.EmergencyVetClinic 
             : req.PreferredVetClinic.Trim();

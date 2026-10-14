@@ -12,6 +12,13 @@ public class User
     public string Status { get; set; } = "approved"; // pending | approved | rejected | suspended
     public string? RejectionReason { get; set; }
     public decimal WalletBalance { get; set; } = 0m;
+    public string? Address { get; set; }
+    public string? BuildingNote { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public string? LineId { get; set; }
+    public string? SecondaryPhone { get; set; }
+    public string? EmergencyContactName { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 

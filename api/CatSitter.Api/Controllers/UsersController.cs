@@ -70,9 +70,40 @@ public class UsersController : ControllerBase
         if (req.Name is not null) user.Name = req.Name;
         if (req.Phone is not null) user.Phone = req.Phone;
         if (req.AvatarUrl is not null) user.AvatarUrl = req.AvatarUrl;
+        if (req.Address is not null) user.Address = req.Address;
+        if (req.BuildingNote is not null) user.BuildingNote = req.BuildingNote;
+        if (req.Latitude is not null) user.Latitude = req.Latitude;
+        if (req.Longitude is not null) user.Longitude = req.Longitude;
+        if (req.LineId is not null) user.LineId = req.LineId;
+        if (req.SecondaryPhone is not null) user.SecondaryPhone = req.SecondaryPhone;
+        if (req.EmergencyContactName is not null) user.EmergencyContactName = req.EmergencyContactName;
         user.UpdatedAt = DateTimeOffset.UtcNow;
 
         await _db.SaveChangesAsync();
         return Ok(user.ToDto());
+    }
+
+    [HttpPost("me/change-password")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.NewPassword) || req.NewPassword.Length < 6)
+        {
+            return BadRequest(new { message = "รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร" });
+        }
+
+        var userId = User.GetUserId();
+        var user = await _db.Users.FindAsync(userId);
+        if (user is null) return NotFound();
+
+        if (!BCrypt.Net.BCrypt.Verify(req.CurrentPassword, user.PasswordHash))
+        {
+            return BadRequest(new { message = "รหัสผ่านปัจจุบันไม่ถูกต้อง" });
+        }
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
+        user.UpdatedAt = DateTimeOffset.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "เปลี่ยนรหัสผ่านสำเร็จเรียบร้อยแล้ว" });
     }
 }

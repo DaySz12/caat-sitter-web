@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-vue-next';
+import { useAuthStore } from '@/features/auth/auth.store';
 import { sittersApi } from '@/features/sitters/sitters.api';
 import { catsApi } from '@/features/cats/cats.api';
 import { bookingApi } from './booking.api';
@@ -69,6 +70,13 @@ onMounted(async () => {
     const first = catsData[0];
     if (first.emergencyContactPhone) emergencyContactPhone.value = first.emergencyContactPhone;
     if (first.emergencyVetClinic) preferredVetClinic.value = first.emergencyVetClinic;
+  }
+  const auth = useAuthStore();
+  if (auth.user?.address && !serviceAddress.value) {
+    serviceAddress.value = auth.user.address;
+  }
+  if (auth.user?.secondaryPhone && !emergencyContactPhone.value) {
+    emergencyContactPhone.value = auth.user.secondaryPhone;
   }
   isLoading.value = false;
 });

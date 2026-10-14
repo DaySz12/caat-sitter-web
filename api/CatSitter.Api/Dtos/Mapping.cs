@@ -7,7 +7,8 @@ namespace CatSitter.Api.Dtos;
 public static class Mapping
 {
     public static UserDto ToDto(this User u) => new(
-        u.Id, u.Email, u.Name, u.Phone, u.AvatarUrl, u.Role, u.Status, u.WalletBalance, u.CreatedAt
+        u.Id, u.Email, u.Name, u.Phone, u.AvatarUrl, u.Role, u.Status, u.WalletBalance, u.CreatedAt,
+        u.Address, u.BuildingNote, u.Latitude, u.Longitude, u.LineId, u.SecondaryPhone, u.EmergencyContactName
     );
 
     public static UserBriefDto ToBriefDto(this User u) => new(u.Id, u.Name, u.AvatarUrl, u.Role);
