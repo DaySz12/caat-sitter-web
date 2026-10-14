@@ -15,6 +15,7 @@ public static class DemoSeeder
     {
         SeedAccounts(db);
         SeedDemoContent(db);
+        SeedBanners(db);
     }
 
     // Runs only while the users table is empty.
@@ -97,7 +98,8 @@ public static class DemoSeeder
             instructions: "ข้าวปั้นต้องกินยาหลังอาหารเช้าทุกวันค่ะ", createdOn: today.AddDays(-1));
         var pastWithSitter = AddBooking(db, owner, sitter, new() { makham }, today.AddDays(-30), today.AddDays(-27), "completed");
         var toReview = AddBooking(db, owner, mali, new() { somo, khaopan }, today.AddDays(-10), today.AddDays(-8), "completed");
-        var upcoming = AddBooking(db, owner, mali, new() { makham, somo }, today.AddDays(5), today.AddDays(7), "confirmed");
+        var upcoming = AddBooking(db, owner, mali, new() { makham, somo }, today.AddDays(5), today.AddDays(7), "confirmed",
+            paymentStatus: "pending_verification", paymentSlipUrl: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600");
         AddBooking(db, owner, tonkla, new() { somo }, today.AddDays(-20), today.AddDays(-19), "cancelled",
             cancellationReason: "เปลี่ยนแผนการเดินทาง");
         var pastWithPuifai = AddBooking(db, owner, puifai, new() { khaopan }, today.AddDays(-45), today.AddDays(-43), "completed");
@@ -248,7 +250,8 @@ public static class DemoSeeder
     }
 
     private static Booking AddBooking(AppDbContext db, User owner, User sitter, List<Cat> cats, DateOnly start, DateOnly end,
-        string status, string? instructions = null, string? cancellationReason = null, DateOnly? createdOn = null)
+        string status, string? instructions = null, string? cancellationReason = null, DateOnly? createdOn = null,
+        string? paymentStatus = null, string? paymentSlipUrl = null)
     {
         var pricePerDay = db.SitterProfiles.Find(sitter.Id)?.PricePerDay ?? 300m;
         var days = end.DayNumber - start.DayNumber + 1;
@@ -258,6 +261,8 @@ public static class DemoSeeder
         var created = createdOn ?? start.AddDays(-5);
         if (created > BangkokTime.Today) created = BangkokTime.Today;
         var createdAt = NotAfterNow(BangkokTime.At(created, 10, 0));
+
+        var finalPaymentStatus = paymentStatus ?? (status == "completed" || status == "in_progress" ? "paid" : "unpaid");
 
         var booking = new Booking
         {
@@ -271,7 +276,9 @@ public static class DemoSeeder
             ServiceFee = serviceFee,
             TotalPrice = basePrice + serviceFee,
             Status = status,
-            PaymentStatus = status == "completed" ? "paid" : "unpaid",
+            PaymentStatus = finalPaymentStatus,
+            PaymentSlipUrl = paymentSlipUrl ?? (finalPaymentStatus == "paid" ? "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600" : null),
+            PaymentSlipUploadedAt = paymentSlipUrl != null || finalPaymentStatus == "paid" ? createdAt : null,
             SpecialInstructions = instructions,
             CancellationReason = cancellationReason,
             CreatedAt = createdAt,
@@ -326,5 +333,41 @@ public static class DemoSeeder
     {
         var now = DateTimeOffset.UtcNow.AddMinutes(-5);
         return at > now ? now : at;
+    }
+
+    private static void SeedBanners(AppDbContext db)
+    {
+        if (db.Banners.Any()) return;
+
+        db.Banners.AddRange(
+            new Banner
+            {
+                Type = "banner",
+                Title = "บริการรับฝากและดูแลแมวถึงบ้าน ปลอดภัย อุ่นใจ 100%",
+                ImageUrl = "https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=1200&q=80",
+                LinkUrl = "/owner/sitters",
+                IsActive = true,
+                DisplayOrder = 1,
+            },
+            new Banner
+            {
+                Type = "banner",
+                Title = "พี่เลี้ยงมืออาชีพ ผ่านการตรวจสอบบัตรประชาชนและประวัติทุกคน",
+                ImageUrl = "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1200&q=80",
+                LinkUrl = "/owner/sitters",
+                IsActive = true,
+                DisplayOrder = 2,
+            },
+            new Banner
+            {
+                Type = "popup",
+                Title = "🎉 ต้อนรับสมาชิกใหม่! รับส่วนลด 10% สำหรับการจองครั้งแรก",
+                ImageUrl = "https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=800&q=80",
+                LinkUrl = "/owner/sitters",
+                IsActive = true,
+                DisplayOrder = 1,
+            }
+        );
+        db.SaveChanges();
     }
 }

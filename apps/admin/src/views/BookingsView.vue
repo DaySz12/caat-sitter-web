@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { api } from '../api/client';
-import { Search, Eye, X } from 'lucide-vue-next';
+import { api, API_URL } from '../api/client';
+import { Search, Eye, X, ExternalLink } from 'lucide-vue-next';
 
 const bookings = ref<any[]>([]);
 const isLoading = ref(true);
@@ -31,6 +31,12 @@ const filteredBookings = computed(() => {
       b.sitter?.name?.toLowerCase().includes(q)
   );
 });
+
+function resolveImageUrl(url?: string) {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${API_URL}${url}`;
+}
 
 function getStatusBadge(status: string) {
   switch (status) {
@@ -217,6 +223,23 @@ onMounted(() => {
             <p class="text-xs bg-slate-50 p-3 rounded-xl border border-slate-200 mt-1 text-slate-600">
               {{ selectedBooking.special_instructions }}
             </p>
+          </div>
+
+          <!-- Slip Box if available -->
+          <div v-if="selectedBooking.payment_slip_url" class="p-4 rounded-2xl border border-slate-200 bg-slate-50 space-y-2">
+            <span class="text-xs font-semibold text-slate-700 block">สลิปการโอนเงินที่แนบมา:</span>
+            <div class="flex items-center gap-4">
+              <a :href="resolveImageUrl(selectedBooking.payment_slip_url)" target="_blank" class="w-16 h-20 rounded-xl overflow-hidden bg-slate-900 border border-slate-300 block shrink-0 shadow-xs">
+                <img :src="resolveImageUrl(selectedBooking.payment_slip_url)" class="w-full h-full object-cover" />
+              </a>
+              <div class="text-xs space-y-1">
+                <p class="text-slate-500">สถานะการชำระ: <span class="font-bold text-slate-800">{{ selectedBooking.payment_status }}</span></p>
+                <p v-if="selectedBooking.payment_slip_uploaded_at" class="text-slate-400">แนบเมื่อ: {{ new Date(selectedBooking.payment_slip_uploaded_at).toLocaleString('th-TH') }}</p>
+                <a :href="resolveImageUrl(selectedBooking.payment_slip_url)" target="_blank" class="inline-flex items-center gap-1 text-[#FF7A59] font-medium hover:underline">
+                  เปิดดูสลิปขนาดเต็ม <ExternalLink class="w-3 h-3" />
+                </a>
+              </div>
+            </div>
           </div>
         </div>
 

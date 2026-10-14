@@ -22,8 +22,9 @@ const STATUS_LABELS_TH: Record<string, string> = {
   completed: 'เสร็จสิ้น',
   cancelled: 'ยกเลิกแล้ว',
   rejected: 'ปฏิเสธ',
-  unpaid: 'ยังไม่ชำระ',
-  paid: 'ชำระแล้ว',
+  unpaid: 'ยังไม่ชำระเงิน',
+  pending_verification: 'รอตรวจสอบสลิป',
+  paid: 'ชำระเงินแล้ว',
   refunded: 'คืนเงินแล้ว',
 };
 
@@ -35,7 +36,8 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: 'bg-red-50 text-red-600 border-red-200',
   rejected: 'bg-red-50 text-red-600 border-red-200',
   unpaid: 'bg-amber-50 text-amber-600 border-amber-200',
-  paid: 'bg-green-50 text-green-600 border-green-200',
+  pending_verification: 'bg-amber-50 text-amber-700 border-amber-300',
+  paid: 'bg-emerald-50 text-emerald-600 border-emerald-200',
   refunded: 'bg-slate-100 text-slate-600 border-slate-200',
 };
 

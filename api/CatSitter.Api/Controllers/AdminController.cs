@@ -31,6 +31,7 @@ public class AdminController : ControllerBase
 
         var totalRevenue = bookingStats.Where(b => b.PaymentStatus == "paid").Sum(b => b.TotalPrice);
         var activeBookings = bookingStats.Count(b => b.Status == "confirmed" || b.Status == "in_progress");
+        var pendingPayments = bookingStats.Count(b => b.PaymentStatus == "pending_verification");
 
         var recent = await _db.Bookings
             .Include(b => b.Owner)
@@ -44,7 +45,7 @@ public class AdminController : ControllerBase
             ))
             .ToListAsync();
 
-        return Ok(new AdminDashboardDto(totalUsers, totalRevenue, pendingSitters, bookingStats.Count, activeBookings, recent));
+        return Ok(new AdminDashboardDto(totalUsers, totalRevenue, pendingSitters, pendingPayments, bookingStats.Count, activeBookings, recent));
     }
 
     [HttpGet("sitters")]
@@ -139,13 +140,105 @@ public class AdminController : ControllerBase
             .OrderByDescending(b => b.CreatedAt)
             .Select(b => new AdminBookingDto(
                 b.Id, b.BookingCode, b.StartDate, b.EndDate, b.DaysCount, b.BasePrice, b.ServiceFee, b.TotalPrice,
-                b.Status, b.PaymentStatus, b.SpecialInstructions, b.CreatedAt,
+                b.Status, b.PaymentStatus, b.PaymentSlipUrl, b.PaymentSlipUploadedAt, b.PaymentRejectionReason,
+                b.SpecialInstructions, b.CreatedAt,
                 b.Owner == null ? null : new AdminUserContactDto(b.Owner.Name, b.Owner.Email, b.Owner.Phone, b.Owner.AvatarUrl),
                 b.Sitter == null ? null : new AdminUserContactDto(b.Sitter.Name, b.Sitter.Email, b.Sitter.Phone, b.Sitter.AvatarUrl)
             ))
             .ToListAsync();
 
         return Ok(bookings);
+    }
+
+    [HttpGet("payments")]
+    public async Task<ActionResult<List<AdminBookingDto>>> GetPayments([FromQuery] string status = "pending_verification")
+    {
+        var query = _db.Bookings.Include(b => b.Owner).Include(b => b.Sitter).AsQueryable();
+        if (status == "pending_verification")
+        {
+            query = query.Where(b => b.PaymentStatus == "pending_verification");
+        }
+        else if (status != "all")
+        {
+            query = query.Where(b => b.PaymentStatus == status);
+        }
+        else
+        {
+            query = query.Where(b => b.PaymentSlipUrl != null);
+        }
+
+        var payments = await query
+            .OrderByDescending(b => b.PaymentSlipUploadedAt ?? b.CreatedAt)
+            .Select(b => new AdminBookingDto(
+                b.Id, b.BookingCode, b.StartDate, b.EndDate, b.DaysCount, b.BasePrice, b.ServiceFee, b.TotalPrice,
+                b.Status, b.PaymentStatus, b.PaymentSlipUrl, b.PaymentSlipUploadedAt, b.PaymentRejectionReason,
+                b.SpecialInstructions, b.CreatedAt,
+                b.Owner == null ? null : new AdminUserContactDto(b.Owner.Name, b.Owner.Email, b.Owner.Phone, b.Owner.AvatarUrl),
+                b.Sitter == null ? null : new AdminUserContactDto(b.Sitter.Name, b.Sitter.Email, b.Sitter.Phone, b.Sitter.AvatarUrl)
+            ))
+            .ToListAsync();
+
+        return Ok(payments);
+    }
+
+    [HttpPost("bookings/{id:guid}/payment/approve")]
+    public async Task<IActionResult> ApprovePayment(Guid id)
+    {
+        var booking = await _db.Bookings.FindAsync(id);
+        if (booking is null) return NotFound(new { message = "ไม่พบรายการจอง" });
+
+        booking.PaymentStatus = "paid";
+        booking.PaymentRejectionReason = null;
+        if (booking.Status == "pending") booking.Status = "confirmed";
+        booking.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.Notifications.Add(new Notification
+        {
+            UserId = booking.OwnerId,
+            Title = "✅ ยืนยันการชำระเงินเรียบร้อยแล้ว",
+            Body = $"การชำระเงินสำหรับการจอง {booking.BookingCode} ยอด {booking.TotalPrice:N2} บาท ได้รับการยืนยันแล้ว",
+            Type = "payment_approved",
+            DataJson = $"{{\"booking_id\":\"{booking.Id}\"}}",
+        });
+
+        _db.Notifications.Add(new Notification
+        {
+            UserId = booking.SitterId,
+            Title = "💰 เจ้าของแมวชำระเงินแล้ว",
+            Body = $"การจอง {booking.BookingCode} ชำระเงินเรียบร้อยแล้ว เตรียมเริ่มดูแลน้องแมวได้เลย",
+            Type = "payment_approved",
+            DataJson = $"{{\"booking_id\":\"{booking.Id}\"}}",
+        });
+
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpPost("bookings/{id:guid}/payment/reject")]
+    public async Task<IActionResult> RejectPayment(Guid id, AdminRejectPaymentRequest req)
+    {
+        var booking = await _db.Bookings.FindAsync(id);
+        if (booking is null) return NotFound(new { message = "ไม่พบรายการจอง" });
+
+        var reason = string.IsNullOrWhiteSpace(req.Reason)
+            ? "สลิปไม่ชัดเจนหรือยอดเงินไม่ถูกต้อง"
+            : req.Reason.Trim();
+
+        booking.PaymentStatus = "rejected";
+        booking.PaymentRejectionReason = reason;
+        booking.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.Notifications.Add(new Notification
+        {
+            UserId = booking.OwnerId,
+            Title = "⚠️ สลิปการชำระเงินไม่ผ่านการตรวจสอบ",
+            Body = $"เหตุผล: {reason} กรุณาตรวจสอบและแนบสลิปใหม่อีกครั้ง",
+            Type = "payment_rejected",
+            DataJson = $"{{\"booking_id\":\"{booking.Id}\"}}",
+        });
+
+        await _db.SaveChangesAsync();
+        return NoContent();
     }
 
     [HttpGet("users")]

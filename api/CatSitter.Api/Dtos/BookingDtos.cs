@@ -13,6 +13,9 @@ public record BookingDto(
     decimal TotalPrice,
     string Status,
     string PaymentStatus,
+    string? PaymentSlipUrl,
+    DateTimeOffset? PaymentSlipUploadedAt,
+    string? PaymentRejectionReason,
     string? SpecialInstructions,
     string? CancellationReason,
     DateTimeOffset CreatedAt,
@@ -34,3 +37,8 @@ public record UpdateBookingStatusRequest(
     string Status, // confirmed | in_progress | completed | cancelled | rejected
     string? CancellationReason
 );
+
+public record UploadPaymentSlipRequest(
+    string SlipUrl
+);
+

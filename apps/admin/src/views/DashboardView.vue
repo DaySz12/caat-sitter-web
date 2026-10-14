@@ -8,13 +8,15 @@ import {
   Users,
   Clock,
   CheckCircle2,
-  ArrowUpRight
+  ArrowUpRight,
+  CreditCard
 } from 'lucide-vue-next';
 
 interface Stats {
   totalBookings: number;
   totalRevenue: number;
   pendingSitters: number;
+  pendingPayments: number;
   totalUsers: number;
   activeBookings: number;
 }
@@ -23,6 +25,7 @@ const stats = ref<Stats>({
   totalBookings: 0,
   totalRevenue: 0,
   pendingSitters: 0,
+  pendingPayments: 0,
   totalUsers: 0,
   activeBookings: 0,
 });
@@ -37,6 +40,7 @@ async function loadDashboardData() {
       total_users: number;
       total_revenue: number;
       pending_sitters: number;
+      pending_payments: number;
       total_bookings: number;
       active_bookings: number;
       recent_bookings: any[];
@@ -46,6 +50,7 @@ async function loadDashboardData() {
       totalBookings: data.total_bookings,
       totalRevenue: data.total_revenue,
       pendingSitters: data.pending_sitters,
+      pendingPayments: data.pending_payments || 0,
       totalUsers: data.total_users,
       activeBookings: data.active_bookings,
     };
@@ -95,15 +100,28 @@ onMounted(() => {
           <h1 class="text-2xl sm:text-3xl font-bold">ยินดีต้อนรับสู่แผงควบคุมระบบ</h1>
           <p class="text-slate-300 text-sm mt-1">สรุปข้อมูลกิจกรรมและการเงินแบบ Realtime บนแพลตฟอร์ม Cat Sitter</p>
         </div>
-        <RouterLink
-          to="/sitters/verification"
-          class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#FF7A59] hover:bg-[#E05638] text-white font-semibold text-sm transition-all shadow-md shadow-[#FF7A59]/30 self-start sm:self-auto"
-        >
-          <span>ตรวจสอบ Sitter ใหม่</span>
-          <span v-if="stats.pendingSitters > 0" class="px-2 py-0.5 text-xs bg-white text-[#FF7A59] rounded-full font-bold">
-            {{ stats.pendingSitters }}
-          </span>
-        </RouterLink>
+        <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <RouterLink
+            to="/payments"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm transition-all shadow-md shadow-amber-500/20"
+          >
+            <CreditCard class="w-4 h-4" />
+            <span>สลิปรอตรวจสอบ</span>
+            <span v-if="stats.pendingPayments > 0" class="px-2 py-0.5 text-xs bg-white text-amber-700 rounded-full font-bold">
+              {{ stats.pendingPayments }}
+            </span>
+          </RouterLink>
+
+          <RouterLink
+            to="/sitters/verification"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF7A59] hover:bg-[#E05638] text-white font-semibold text-sm transition-all shadow-md shadow-[#FF7A59]/30"
+          >
+            <span>ตรวจสอบ Sitter</span>
+            <span v-if="stats.pendingSitters > 0" class="px-2 py-0.5 text-xs bg-white text-[#FF7A59] rounded-full font-bold">
+              {{ stats.pendingSitters }}
+            </span>
+          </RouterLink>
+        </div>
       </div>
     </div>
 

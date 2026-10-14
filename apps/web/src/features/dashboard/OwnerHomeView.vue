@@ -6,8 +6,11 @@ import { useAuthStore } from '@/features/auth/auth.store';
 import { useSummaryStore } from '@/features/notifications/summary.store';
 import { catsApi } from '@/features/cats/cats.api';
 import { bookingApi } from '@/features/booking/booking.api';
+import { bannersApi } from '@/shared/lib/banners.api';
 import BookingCard from '@/features/booking/BookingCard.vue';
-import type { BookingDto, CatDto } from '@/shared/types/models';
+import BannerCarousel from '@/shared/ui/BannerCarousel.vue';
+import PopupModal from '@/shared/ui/PopupModal.vue';
+import type { BookingDto, CatDto, BannerDto } from '@/shared/types/models';
 import { formatCurrency } from '@/shared/lib/format';
 import StatTile from '@/shared/ui/StatTile.vue';
 
@@ -16,6 +19,8 @@ const summaryStore = useSummaryStore();
 const router = useRouter();
 const cats = ref<CatDto[]>([]);
 const bookings = ref<BookingDto[]>([]);
+const banners = ref<BannerDto[]>([]);
+const popups = ref<BannerDto[]>([]);
 
 const activeBookings = computed(() =>
   bookings.value.filter((b) => b.status === 'pending' || b.status === 'confirmed' || b.status === 'in_progress').slice(0, 3),
@@ -24,14 +29,26 @@ const inCare = computed(() => bookings.value.filter((b) => b.status === 'in_prog
 const awaitingReview = computed(() => bookings.value.filter((b) => b.status === 'completed' && !b.review));
 
 onMounted(async () => {
-  const [catsData, bookingsData] = await Promise.all([catsApi.mine(), bookingApi.mine()]);
+  const [catsData, bookingsData, bannersData] = await Promise.all([
+    catsApi.mine(),
+    bookingApi.mine(),
+    bannersApi.list().catch(() => []),
+  ]);
   cats.value = catsData;
   bookings.value = bookingsData;
+  banners.value = (bannersData || []).filter((b) => b.type === 'banner');
+  popups.value = (bannersData || []).filter((b) => b.type === 'popup');
 });
 </script>
 
 <template>
   <div>
+    <!-- Popup Modal -->
+    <PopupModal :popups="popups" />
+
+    <!-- Top Banner Carousel -->
+    <BannerCarousel v-if="banners.length > 0" :banners="banners" />
+
     <div class="bg-gradient-to-r from-[#FF7A59] to-[#FF9E85] rounded-2xl p-6 text-white mb-6">
       <h1 class="text-xl font-bold">สวัสดี, {{ auth.user?.name }} 🐾</h1>
       <p class="text-sm opacity-90 mt-1">คุณมีแมว {{ cats.length }} ตัว และการจองที่กำลังดำเนินการ {{ activeBookings.length }} รายการ</p>

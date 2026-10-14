@@ -79,6 +79,63 @@ namespace CatSitter.Api.Migrations
                     b.ToTable("attendance_records", (string)null);
                 });
 
+            modelBuilder.Entity("CatSitter.Api.Entities.Banner", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("display_order");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("image_url");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("LinkUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("link_url");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_banners");
+
+                    b.HasIndex("DisplayOrder")
+                        .HasDatabaseName("ix_banners_display_order");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("ix_banners_is_active");
+
+                    b.HasIndex("Type")
+                        .HasDatabaseName("ix_banners_type");
+
+                    b.ToTable("banners", (string)null);
+                });
+
             modelBuilder.Entity("CatSitter.Api.Entities.Booking", b =>
                 {
                     b.Property<Guid>("Id")
@@ -118,6 +175,18 @@ namespace CatSitter.Api.Migrations
                     b.Property<string>("PaymentIntentId")
                         .HasColumnType("text")
                         .HasColumnName("payment_intent_id");
+
+                    b.Property<string>("PaymentRejectionReason")
+                        .HasColumnType("text")
+                        .HasColumnName("payment_rejection_reason");
+
+                    b.Property<DateTimeOffset?>("PaymentSlipUploadedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("payment_slip_uploaded_at");
+
+                    b.Property<string>("PaymentSlipUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("payment_slip_url");
 
                     b.Property<string>("PaymentStatus")
                         .IsRequired()

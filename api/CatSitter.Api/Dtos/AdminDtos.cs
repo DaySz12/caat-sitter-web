@@ -35,9 +35,27 @@ public record AdminDashboardDto(
     [property: JsonPropertyName("total_users")] int TotalUsers,
     [property: JsonPropertyName("total_revenue")] decimal TotalRevenue,
     [property: JsonPropertyName("pending_sitters")] int PendingSitters,
+    [property: JsonPropertyName("pending_payments")] int PendingPayments,
+    [property: JsonPropertyName("pending_payouts")] int PendingPayouts,
     [property: JsonPropertyName("total_bookings")] int TotalBookings,
     [property: JsonPropertyName("active_bookings")] int ActiveBookings,
     [property: JsonPropertyName("recent_bookings")] List<AdminRecentBookingDto> RecentBookings
+);
+
+public record AdminPayoutDto(
+    [property: JsonPropertyName("id")] Guid Id,
+    [property: JsonPropertyName("sitter_id")] Guid SitterId,
+    [property: JsonPropertyName("amount")] decimal Amount,
+    [property: JsonPropertyName("bank_name")] string BankName,
+    [property: JsonPropertyName("bank_account_number")] string BankAccountNumber,
+    [property: JsonPropertyName("bank_account_name")] string BankAccountName,
+    [property: JsonPropertyName("promptpay_number")] string? PromptPayNumber,
+    [property: JsonPropertyName("status")] string Status,
+    [property: JsonPropertyName("admin_notes")] string? AdminNotes,
+    [property: JsonPropertyName("transfer_slip_url")] string? TransferSlipUrl,
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
+    [property: JsonPropertyName("processed_at")] DateTimeOffset? ProcessedAt,
+    [property: JsonPropertyName("sitter")] AdminUserContactDto? Sitter
 );
 
 public record AdminSitterProfileBriefDto(
@@ -64,6 +82,7 @@ public record AdminSitterDto(
 );
 
 public record AdminRejectSitterRequest(string? Reason);
+public record AdminRejectPaymentRequest([property: JsonPropertyName("reason")] string? Reason);
 
 public record AdminBookingDto(
     [property: JsonPropertyName("id")] Guid Id,
@@ -76,6 +95,9 @@ public record AdminBookingDto(
     [property: JsonPropertyName("total_price")] decimal TotalPrice,
     [property: JsonPropertyName("status")] string Status,
     [property: JsonPropertyName("payment_status")] string PaymentStatus,
+    [property: JsonPropertyName("payment_slip_url")] string? PaymentSlipUrl,
+    [property: JsonPropertyName("payment_slip_uploaded_at")] DateTimeOffset? PaymentSlipUploadedAt,
+    [property: JsonPropertyName("payment_rejection_reason")] string? PaymentRejectionReason,
     [property: JsonPropertyName("special_instructions")] string? SpecialInstructions,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
     [property: JsonPropertyName("owner")] AdminUserContactDto? Owner,

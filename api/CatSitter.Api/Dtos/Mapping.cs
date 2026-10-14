@@ -27,6 +27,7 @@ public static class Mapping
     public static BookingDto ToDto(this Booking b, Review? review = null) => new(
         b.Id, b.BookingCode, b.OwnerId, b.SitterId, b.StartDate, b.EndDate, b.DaysCount,
         b.BasePrice, b.ServiceFee, b.TotalPrice, b.Status, b.PaymentStatus,
+        b.PaymentSlipUrl, b.PaymentSlipUploadedAt, b.PaymentRejectionReason,
         b.SpecialInstructions, b.CancellationReason, b.CreatedAt,
         b.Owner?.ToDto(), b.Sitter?.ToDto(),
         b.BookingCats?.Where(bc => bc.Cat is not null).Select(bc => bc.Cat!.ToDto()).ToList() ?? new List<CatDto>(),
@@ -52,6 +53,14 @@ public static class Mapping
     public static ChecklistDto ToDto(this Checklist c) => new(
         c.Id, c.Date, c.Title,
         c.Items.Select(i => new ChecklistItemDto(i.Id, i.TaskName, i.IsCompleted, i.PhotoUrl, i.CompletedAt, i.Note)).ToList()
+    );
+
+    public static BannerDto ToDto(this Banner b) => new(
+        b.Id, b.Type, b.Title, b.ImageUrl, b.LinkUrl, b.IsActive, b.DisplayOrder, b.CreatedAt
+    );
+
+    public static AdminBannerDto ToAdminDto(this Banner b) => new(
+        b.Id, b.Type, b.Title, b.ImageUrl, b.LinkUrl, b.IsActive, b.DisplayOrder, b.CreatedAt
     );
 
     // Notifications store their link target as JSON, e.g. {"booking_id":"..."}.

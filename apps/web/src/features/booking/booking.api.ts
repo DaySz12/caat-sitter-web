@@ -16,4 +16,6 @@ export const bookingApi = {
   create: (payload: CreateBookingPayload) => api.post<BookingDto>('/api/bookings', payload),
   updateStatus: (id: string, status: BookingStatus, cancellationReason?: string) =>
     api.patch<BookingDto>(`/api/bookings/${id}/status`, { status, cancellationReason }),
+  uploadPaymentSlip: (id: string, slipUrl: string) =>
+    api.post<BookingDto>(`/api/bookings/${id}/payment-slip`, { slipUrl }),
 };

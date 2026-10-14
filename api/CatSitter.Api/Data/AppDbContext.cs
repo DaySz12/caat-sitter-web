@@ -20,6 +20,9 @@ public class AppDbContext : DbContext
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<ServiceFee> ServiceFees => Set<ServiceFee>();
+    public DbSet<Banner> Banners => Set<Banner>();
+    public DbSet<PayoutRequest> PayoutRequests => Set<PayoutRequest>();
+    public DbSet<PlatformPaymentSetting> PlatformPaymentSettings => Set<PlatformPaymentSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -129,6 +132,24 @@ public class AppDbContext : DbContext
                 .WithMany(r => r.Messages)
                 .HasForeignKey(m => m.RoomId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Banner>(e =>
+        {
+            e.HasIndex(b => b.Type);
+            e.HasIndex(b => b.IsActive);
+            e.HasIndex(b => b.DisplayOrder);
+        });
+
+        modelBuilder.Entity<PayoutRequest>(e =>
+        {
+            e.Property(p => p.Amount).HasColumnType("numeric(12,2)");
+            e.HasOne(p => p.Sitter)
+                .WithMany()
+                .HasForeignKey(p => p.SitterId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(p => p.Status);
+            e.HasIndex(p => p.CreatedAt);
         });
     }
 }

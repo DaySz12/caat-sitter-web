@@ -14,7 +14,9 @@ import {
   Menu,
   X,
   Bell,
-  ShieldCheck
+  ShieldCheck,
+  Image as ImageIcon,
+  CreditCard
 } from 'lucide-vue-next';
 
 const authStore = useAuthStore();
@@ -23,21 +25,25 @@ const route = useRoute();
 
 const isSidebarOpen = ref(false);
 const pendingSittersCount = ref(0);
+const pendingPaymentsCount = ref(0);
 
 const navItems = [
   { name: 'แดชบอร์ดภาพรวม', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'ตรวจสอบ Sitter', path: '/sitters/verification', icon: UserCheck, badge: true },
+  { name: 'ตรวจสอบการชำระเงิน', path: '/payments', icon: CreditCard, badgeType: 'payments' },
+  { name: 'ตรวจสอบ Sitter', path: '/sitters/verification', icon: UserCheck, badgeType: 'sitters' },
   { name: 'จัดการการจอง', path: '/bookings', icon: CalendarCheck },
   { name: 'จัดการผู้ใช้งาน', path: '/users', icon: Users },
+  { name: 'แบนเนอร์ & ป๊อปอัป', path: '/banners', icon: ImageIcon },
   { name: 'ตั้งค่าระบบ', path: '/settings', icon: Settings },
 ];
 
 async function fetchPendingCount() {
   try {
-    const dashboard = await api.get<{ pending_sitters: number }>('/api/admin/dashboard');
-    pendingSittersCount.value = dashboard.pending_sitters;
+    const dashboard = await api.get<{ pending_sitters: number; pending_payments: number }>('/api/admin/dashboard');
+    pendingSittersCount.value = dashboard.pending_sitters || 0;
+    pendingPaymentsCount.value = dashboard.pending_payments || 0;
   } catch (e) {
-    console.error('Error fetching pending sitters:', e);
+    console.error('Error fetching pending counts:', e);
   }
 }
 
@@ -115,10 +121,16 @@ onMounted(() => {
           </div>
 
           <span
-            v-if="item.badge && pendingSittersCount > 0"
+            v-if="item.badgeType === 'sitters' && pendingSittersCount > 0"
             class="px-2 py-0.5 text-xs font-bold rounded-full bg-[#E63946] text-white animate-pulse"
           >
             {{ pendingSittersCount }}
+          </span>
+          <span
+            v-else-if="item.badgeType === 'payments' && pendingPaymentsCount > 0"
+            class="px-2 py-0.5 text-xs font-bold rounded-full bg-amber-500 text-white animate-pulse"
+          >
+            {{ pendingPaymentsCount }}
           </span>
         </RouterLink>
       </div>

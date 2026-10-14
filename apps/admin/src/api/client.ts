@@ -55,4 +55,10 @@ export const api = {
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'PATCH', body: body !== undefined ? JSON.stringify(body) : undefined }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+  upload: async (bucket: string, file: File): Promise<{ url: string }> => {
+    const form = new FormData();
+    form.append('file', file);
+    const result = await request<{ url: string }>(`/api/uploads/${bucket}`, { method: 'POST', body: form });
+    return { url: `${API_URL}${result.url}` };
+  },
 };

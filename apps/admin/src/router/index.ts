@@ -35,9 +35,19 @@ const router = createRouter({
           component: () => import('../views/BookingsView.vue'),
         },
         {
+          path: 'payments',
+          name: 'PaymentVerifications',
+          component: () => import('../views/PaymentVerificationsView.vue'),
+        },
+        {
           path: 'users',
           name: 'Users',
           component: () => import('../views/UsersView.vue'),
+        },
+        {
+          path: 'banners',
+          name: 'Banners',
+          component: () => import('../views/BannersView.vue'),
         },
         {
           path: 'settings',

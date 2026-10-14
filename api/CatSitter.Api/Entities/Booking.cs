@@ -13,7 +13,10 @@ public class Booking
     public decimal ServiceFee { get; set; } = 0m;
     public decimal TotalPrice { get; set; } = 0m;
     public string Status { get; set; } = "pending"; // pending|confirmed|in_progress|completed|cancelled|rejected
-    public string PaymentStatus { get; set; } = "unpaid"; // unpaid|paid|refunded
+    public string PaymentStatus { get; set; } = "unpaid"; // unpaid|pending_verification|paid|rejected|refunded
+    public string? PaymentSlipUrl { get; set; }
+    public DateTimeOffset? PaymentSlipUploadedAt { get; set; }
+    public string? PaymentRejectionReason { get; set; }
     public string? PaymentIntentId { get; set; }
     public string? SpecialInstructions { get; set; }
     public string? CancellationReason { get; set; }

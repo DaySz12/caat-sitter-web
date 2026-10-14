@@ -1,7 +1,7 @@
 export type UserRole = 'owner' | 'sitter' | 'admin';
 export type AccountStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
 export type BookingStatus = 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'rejected';
-export type PaymentStatus = 'unpaid' | 'paid' | 'refunded';
+export type PaymentStatus = 'unpaid' | 'pending_verification' | 'paid' | 'rejected' | 'refunded';
 
 export interface UserDto {
   id: string;
@@ -68,6 +68,9 @@ export interface BookingDto {
   totalPrice: number;
   status: BookingStatus;
   paymentStatus: PaymentStatus;
+  paymentSlipUrl: string | null;
+  paymentSlipUploadedAt: string | null;
+  paymentRejectionReason: string | null;
   specialInstructions: string | null;
   cancellationReason: string | null;
   createdAt: string;
@@ -166,3 +169,15 @@ export interface BookingCareDto {
   attendance: AttendanceDto[];
   checklists: ChecklistDto[];
 }
+
+export interface BannerDto {
+  id: string;
+  type: 'banner' | 'popup';
+  title: string;
+  imageUrl: string;
+  linkUrl: string | null;
+  isActive: boolean;
+  displayOrder: number;
+  createdAt: string;
+}
+

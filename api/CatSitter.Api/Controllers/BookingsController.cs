@@ -154,6 +154,13 @@ public class BookingsController : ControllerBase
         {
             var openVisits = await _db.AttendanceRecords.Where(a => a.BookingId == id && a.CheckOutTime == null).ToListAsync();
             foreach (var visit in openVisits) visit.CheckOutTime = DateTimeOffset.UtcNow;
+
+            // Credit the sitter's wallet with earnings from completed booking
+            var sitterUser = await _db.Users.FindAsync(booking.SitterId);
+            if (sitterUser is not null)
+            {
+                sitterUser.WalletBalance += booking.BasePrice;
+            }
         }
 
         var notifyUserId = userId == booking.OwnerId ? booking.SitterId : booking.OwnerId;
@@ -168,6 +175,42 @@ public class BookingsController : ControllerBase
             Type = "booking_status_changed",
             DataJson = $"{{\"booking_id\":\"{booking.Id}\",\"status\":\"{req.Status}\"}}",
         });
+
+        await _db.SaveChangesAsync();
+        var updated = await BaseQuery().FirstAsync(b => b.Id == id);
+        return Ok(updated.ToDto());
+    }
+
+    [HttpPost("{id:guid}/payment-slip")]
+    public async Task<ActionResult<BookingDto>> UploadPaymentSlip(Guid id, UploadPaymentSlipRequest req)
+    {
+        var userId = User.GetUserId();
+        var booking = await _db.Bookings.FindAsync(id);
+        if (booking is null) return NotFound();
+        if (booking.OwnerId != userId && User.GetRole() != "admin") return Forbid();
+
+        if (string.IsNullOrWhiteSpace(req.SlipUrl))
+            return BadRequest(new { message = "กรุณาระบุ URL สลิปการโอนเงิน" });
+
+        booking.PaymentSlipUrl = req.SlipUrl.Trim();
+        booking.PaymentSlipUploadedAt = DateTimeOffset.UtcNow;
+        booking.PaymentStatus = "pending_verification";
+        booking.PaymentRejectionReason = null;
+        booking.UpdatedAt = DateTimeOffset.UtcNow;
+
+        // Notify admins about the new payment slip
+        var adminIds = await _db.Users.Where(u => u.Role == "admin").Select(u => u.Id).ToListAsync();
+        foreach (var adminId in adminIds)
+        {
+            _db.Notifications.Add(new Notification
+            {
+                UserId = adminId,
+                Title = "🧾 มีการแนบสลิปชำระเงินใหม่",
+                Body = $"การจอง {booking.BookingCode} มียอดชำระ {booking.TotalPrice:N2} บาท รอการตรวจสอบสลิป",
+                Type = "payment_slip_uploaded",
+                DataJson = $"{{\"booking_id\":\"{booking.Id}\"}}",
+            });
+        }
 
         await _db.SaveChangesAsync();
         var updated = await BaseQuery().FirstAsync(b => b.Id == id);
