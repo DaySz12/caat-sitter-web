@@ -1,10 +1,8 @@
-using CatSitter.Api.Data;
 using CatSitter.Api.Dtos;
-using CatSitter.Api.Entities;
 using CatSitter.Api.Services;
+using CatSitter.Api.Services.Cats;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CatSitter.Api.Controllers;
 
@@ -13,97 +11,76 @@ namespace CatSitter.Api.Controllers;
 [Authorize]
 public class CatsController : ControllerBase
 {
-    private readonly AppDbContext _db;
+    private readonly ICatService _catService;
 
-    public CatsController(AppDbContext db)
+    public CatsController(ICatService catService)
     {
-        _db = db;
+        _catService = catService;
     }
 
     /// Cats belonging to the signed-in owner.
     [HttpGet("mine")]
     public async Task<ActionResult<List<CatDto>>> GetMine()
     {
-        var ownerId = User.GetUserId();
-        var cats = await _db.Cats
-            .Where(c => c.OwnerId == ownerId)
-            .OrderByDescending(c => c.CreatedAt)
-            .ToListAsync();
-
-        return Ok(cats.Select(c => c.ToDto()).ToList());
+        var cats = await _catService.GetMineAsync(User.GetUserId());
+        return Ok(cats);
     }
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<CatDto>> GetById(Guid id)
     {
-        var cat = await _db.Cats.FindAsync(id);
+        var cat = await _catService.GetByIdAsync(id);
         if (cat is null) return NotFound();
-        return Ok(cat.ToDto());
+        return Ok(cat);
     }
 
     [HttpPost]
     public async Task<ActionResult<CatDto>> Create(CatUpsertRequest req)
     {
-        var ownerId = User.GetUserId();
-        var cat = new Cat
+        try
         {
-            OwnerId = ownerId,
-            Name = req.Name,
-            Breed = req.Breed,
-            AgeYears = req.AgeYears,
-            AgeMonths = req.AgeMonths,
-            Weight = req.Weight,
-            Gender = req.Gender,
-            IsNeutered = req.IsNeutered,
-            PhotoUrl = req.PhotoUrl,
-            DietaryHabits = req.DietaryHabits,
-            MedicalNotes = req.MedicalNotes,
-            EmergencyVetClinic = req.EmergencyVetClinic,
-            EmergencyContactPhone = req.EmergencyContactPhone,
-            Vaccines = req.Vaccines ?? new List<string>(),
-        };
-        _db.Cats.Add(cat);
-        await _db.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetById), new { id = cat.Id }, cat.ToDto());
+            var created = await _catService.CreateAsync(User.GetUserId(), req);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<CatDto>> Update(Guid id, CatUpsertRequest req)
     {
-        var ownerId = User.GetUserId();
-        var cat = await _db.Cats.FindAsync(id);
-        if (cat is null) return NotFound();
-        if (cat.OwnerId != ownerId) return Forbid();
-
-        cat.Name = req.Name;
-        cat.Breed = req.Breed;
-        cat.AgeYears = req.AgeYears;
-        cat.AgeMonths = req.AgeMonths;
-        cat.Weight = req.Weight;
-        cat.Gender = req.Gender;
-        cat.IsNeutered = req.IsNeutered;
-        cat.PhotoUrl = req.PhotoUrl;
-        cat.DietaryHabits = req.DietaryHabits;
-        cat.MedicalNotes = req.MedicalNotes;
-        cat.EmergencyVetClinic = req.EmergencyVetClinic;
-        cat.EmergencyContactPhone = req.EmergencyContactPhone;
-        cat.Vaccines = req.Vaccines ?? cat.Vaccines;
-        cat.UpdatedAt = DateTimeOffset.UtcNow;
-
-        await _db.SaveChangesAsync();
-        return Ok(cat.ToDto());
+        try
+        {
+            var updated = await _catService.UpdateAsync(id, User.GetUserId(), req);
+            return Ok(updated);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
     }
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var ownerId = User.GetUserId();
-        var cat = await _db.Cats.FindAsync(id);
-        if (cat is null) return NotFound();
-        if (cat.OwnerId != ownerId) return Forbid();
-
-        _db.Cats.Remove(cat);
-        await _db.SaveChangesAsync();
-        return NoContent();
+        try
+        {
+            await _catService.DeleteAsync(id, User.GetUserId());
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
     }
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { X, ExternalLink, Sparkles } from 'lucide-vue-next';
 import { API_URL } from '@/shared/lib/api';
@@ -60,6 +60,14 @@ function handlePopupClick() {
   }
 }
 
+watch(
+  () => props.popups,
+  () => {
+    checkAndShowPopup();
+  },
+  { immediate: true, deep: true }
+);
+
 onMounted(() => {
   checkAndShowPopup();
 });
@@ -72,65 +80,65 @@ onMounted(() => {
     @click.self="closePopup"
   >
     <div
-      class="relative bg-white rounded-3xl max-w-sm sm:max-w-md w-full overflow-hidden shadow-2xl border border-slate-100 flex flex-col animate-in zoom-in-95 duration-300"
+      class="relative bg-white rounded-3xl max-w-md sm:max-w-xl lg:max-w-2xl w-full overflow-hidden shadow-2xl border border-slate-100 flex flex-col animate-in zoom-in-95 duration-300"
     >
       <!-- Close Button -->
       <button
         type="button"
         @click="closePopup"
-        class="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center transition-colors cursor-pointer"
+        class="absolute top-4 right-4 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-all cursor-pointer shadow-md hover:scale-105"
         aria-label="Close"
       >
-        <X class="w-4 h-4" />
+        <X class="w-5 h-5" />
       </button>
 
       <!-- Image -->
       <div
-        class="relative w-full aspect-4/3 sm:aspect-16/10 bg-slate-900 cursor-pointer overflow-hidden group"
+        class="relative w-full aspect-16/10 sm:aspect-16/9 max-h-[360px] bg-slate-900 cursor-pointer overflow-hidden group"
         @click="handlePopupClick"
       >
         <img
           :src="resolveImageUrl(activePopup.imageUrl)"
           :alt="activePopup.title"
-          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          @error="(e) => ((e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=800')"
+          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          @error="(e) => ((e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=1200')"
         />
 
-        <div class="absolute top-3 left-3">
-          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-600/90 text-white backdrop-blur-xs shadow-xs">
-            <Sparkles class="w-3.5 h-3.5 text-amber-300" />
+        <div class="absolute top-4 left-4">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-purple-600/90 text-white backdrop-blur-xs shadow-md">
+            <Sparkles class="w-4 h-4 text-amber-300" />
             ข่าวสาร & โปรโมชั่น
           </span>
         </div>
       </div>
 
       <!-- Content Details -->
-      <div class="p-5 sm:p-6 flex flex-col justify-between">
+      <div class="p-6 sm:p-7 flex flex-col justify-between">
         <div>
-          <h3 class="text-base sm:text-lg font-bold text-slate-800 leading-snug">
+          <h3 class="text-lg sm:text-xl font-bold text-slate-800 leading-snug">
             {{ activePopup.title }}
           </h3>
         </div>
 
         <!-- Action Button -->
-        <div class="mt-4 flex flex-col gap-3">
+        <div class="mt-5 flex flex-col gap-3.5">
           <button
             v-if="activePopup.linkUrl"
             type="button"
             @click="handlePopupClick"
-            class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#FF7A59] to-[#FF9E85] hover:opacity-95 text-white font-semibold text-sm shadow-md shadow-[#FF7A59]/25 flex items-center justify-center gap-2 cursor-pointer transition-all"
+            class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#FF7A59] to-[#FF9E85] hover:opacity-95 text-white font-bold text-base shadow-lg shadow-[#FF7A59]/30 flex items-center justify-center gap-2 cursor-pointer transition-all transform hover:-translate-y-0.5 active:translate-y-0"
           >
             <span>ดูรายละเอียดสิทธิพิเศษ</span>
             <ExternalLink class="w-4 h-4" />
           </button>
 
           <!-- Dismiss Option -->
-          <div class="flex items-center justify-between text-xs text-slate-500 pt-1">
-            <label class="flex items-center gap-2 cursor-pointer select-none">
+          <div class="flex items-center justify-between text-xs sm:text-sm text-slate-500 pt-1">
+            <label class="flex items-center gap-2 cursor-pointer select-none hover:text-slate-700">
               <input
                 v-model="dontShowToday"
                 type="checkbox"
-                class="w-4 h-4 rounded text-[#FF7A59] focus:ring-[#FF7A59]"
+                class="w-4 h-4 rounded text-[#FF7A59] focus:ring-[#FF7A59] cursor-pointer"
               />
               <span>ไม่ต้องแสดงอีกในวันนี้</span>
             </label>

@@ -1,6 +1,12 @@
 using System.Text;
 using CatSitter.Api.Data;
+using CatSitter.Api.Repositories;
+using CatSitter.Api.Repositories.Cats;
+using CatSitter.Api.Repositories.Users;
 using CatSitter.Api.Services;
+using CatSitter.Api.Services.Bookings;
+using CatSitter.Api.Services.Cats;
+using CatSitter.Api.Services.Users;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -20,6 +26,12 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
         .AddInterceptors(sp.GetRequiredService<NotificationPushInterceptor>()));
 
 builder.Services.AddSingleton<JwtService>();
+builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<ICatRepository, CatRepository>();
+builder.Services.AddScoped<ICatService, CatService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "dev-only-please-change-this-secret-key-32chars+";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "catsitter-api";
