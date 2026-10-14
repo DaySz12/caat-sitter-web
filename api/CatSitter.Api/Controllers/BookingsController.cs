@@ -95,6 +95,15 @@ public class BookingsController : ControllerBase
         var serviceFee = Math.Round(basePrice * 0.10m, 2);
         var totalPrice = basePrice + serviceFee;
 
+        var firstCat = cats.FirstOrDefault();
+        var serviceAddress = string.IsNullOrWhiteSpace(req.ServiceAddress) ? null : req.ServiceAddress.Trim();
+        var emergencyPhone = string.IsNullOrWhiteSpace(req.EmergencyContactPhone) 
+            ? firstCat?.EmergencyContactPhone 
+            : req.EmergencyContactPhone.Trim();
+        var vetClinic = string.IsNullOrWhiteSpace(req.PreferredVetClinic) 
+            ? firstCat?.EmergencyVetClinic 
+            : req.PreferredVetClinic.Trim();
+
         var booking = new Booking
         {
             BookingCode = $"CS-{DateTimeOffset.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}",
@@ -107,6 +116,9 @@ public class BookingsController : ControllerBase
             ServiceFee = serviceFee,
             TotalPrice = totalPrice,
             SpecialInstructions = req.SpecialInstructions,
+            ServiceAddress = serviceAddress,
+            EmergencyContactPhone = emergencyPhone,
+            PreferredVetClinic = vetClinic,
             Status = "pending",
             PaymentStatus = "unpaid",
         };
@@ -149,6 +161,26 @@ public class BookingsController : ControllerBase
         if (req.CancellationReason is not null) booking.CancellationReason = req.CancellationReason;
         booking.UpdatedAt = DateTimeOffset.UtcNow;
 
+        if (req.Status == "cancelled" && booking.PaymentStatus == "paid")
+        {
+            booking.RefundStatus = "requested";
+            booking.RefundReason = req.CancellationReason ?? "ลูกค้ายกเลิกการจอง";
+            booking.RefundRequestedAt = DateTimeOffset.UtcNow;
+
+            var adminIds = await _db.Users.Where(u => u.Role == "admin").Select(u => u.Id).ToListAsync();
+            foreach (var aId in adminIds)
+            {
+                _db.Notifications.Add(new Notification
+                {
+                    UserId = aId,
+                    Title = "💸 มีคำขอยกเลิกและคืนเงิน (Refund)",
+                    Body = $"การจอง {booking.BookingCode} ยอด {booking.TotalPrice:N2} บาท ถูกยกเลิกและมีคำขอคืนเงิน",
+                    Type = "refund_requested",
+                    DataJson = $"{{\"booking_id\":\"{booking.Id}\"}}",
+                });
+            }
+        }
+
         // Finishing the job closes a visit the sitter forgot to check out of.
         if (req.Status == "completed")
         {
@@ -175,6 +207,45 @@ public class BookingsController : ControllerBase
             Type = "booking_status_changed",
             DataJson = $"{{\"booking_id\":\"{booking.Id}\",\"status\":\"{req.Status}\"}}",
         });
+
+        await _db.SaveChangesAsync();
+        var updated = await BaseQuery().FirstAsync(b => b.Id == id);
+        return Ok(updated.ToDto());
+    }
+
+    [HttpPost("{id:guid}/refund-request")]
+    public async Task<ActionResult<BookingDto>> RequestRefund(Guid id, RequestRefundRequest req)
+    {
+        var userId = User.GetUserId();
+        var booking = await _db.Bookings.FindAsync(id);
+        if (booking is null) return NotFound();
+        if (booking.OwnerId != userId && User.GetRole() != "admin") return Forbid();
+
+        if (booking.PaymentStatus != "paid")
+            return BadRequest(new { message = "ขอคืนเงินได้เฉพาะรายการที่ชำระเงินเรียบร้อยแล้วเท่านั้น" });
+        if (booking.Status == "completed")
+            return BadRequest(new { message = "ไม่สามารถขอคืนเงินงานที่เสร็จสิ้นแล้วได้" });
+
+        booking.RefundStatus = "requested";
+        booking.RefundReason = req.Reason.Trim();
+        booking.RefundBankInfo = req.BankInfo.Trim();
+        booking.RefundRequestedAt = DateTimeOffset.UtcNow;
+        booking.Status = "cancelled";
+        booking.CancellationReason = $"ขอยกเลิกและขอคืนเงิน: {req.Reason.Trim()}";
+        booking.UpdatedAt = DateTimeOffset.UtcNow;
+
+        var adminIds = await _db.Users.Where(u => u.Role == "admin").Select(u => u.Id).ToListAsync();
+        foreach (var adminId in adminIds)
+        {
+            _db.Notifications.Add(new Notification
+            {
+                UserId = adminId,
+                Title = "💸 มีคำขอคืนเงิน (Refund Request)",
+                Body = $"การจอง {booking.BookingCode} ยอด {booking.TotalPrice:N2} บาท ลูกค้าแจ้งขอคืนเงิน: {req.Reason.Trim()}",
+                Type = "refund_requested",
+                DataJson = $"{{\"booking_id\":\"{booking.Id}\"}}",
+            });
+        }
 
         await _db.SaveChangesAsync();
         var updated = await BaseQuery().FirstAsync(b => b.Id == id);

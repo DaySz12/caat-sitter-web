@@ -58,6 +58,33 @@ function openDetailModal(booking: any) {
   isModalOpen.value = true;
 }
 
+async function approveRefund(booking: any) {
+  if (!confirm(`ยืนยันว่าได้โอนเงินคืนสำหรับการจอง ${booking.booking_code} ยอด ฿${Number(booking.total_price).toLocaleString()} เรียบร้อยแล้ว?`)) return;
+  try {
+    await api.post(`/api/admin/bookings/${booking.id}/refund/approve`, {});
+    booking.refund_status = 'refunded';
+    booking.payment_status = 'refunded';
+    booking.status = 'cancelled';
+    await loadBookings();
+    alert('บันทึกการคืนเงินเรียบร้อยแล้ว');
+  } catch (e: any) {
+    alert(e.message || 'ดำเนินการไม่สำเร็จ');
+  }
+}
+
+async function rejectRefund(booking: any) {
+  const reason = prompt('ระบุเหตุผลการปฏิเสธการคืนเงิน:');
+  if (reason === null) return;
+  try {
+    await api.post(`/api/admin/bookings/${booking.id}/refund/reject`, { reason });
+    booking.refund_status = 'rejected';
+    await loadBookings();
+    alert('ปฏิเสธคำขอคืนเงินเรียบร้อยแล้ว');
+  } catch (e: any) {
+    alert(e.message || 'ดำเนินการไม่สำเร็จ');
+  }
+}
+
 onMounted(() => {
   loadBookings();
 });
@@ -223,6 +250,45 @@ onMounted(() => {
             <p class="text-xs bg-slate-50 p-3 rounded-xl border border-slate-200 mt-1 text-slate-600">
               {{ selectedBooking.special_instructions }}
             </p>
+          </div>
+
+          <!-- Service Address & Emergency Info -->
+          <div v-if="selectedBooking.service_address || selectedBooking.emergency_contact_phone || selectedBooking.preferred_vet_clinic" class="bg-slate-50 p-4 rounded-2xl border border-slate-200/60 space-y-2.5 text-xs">
+            <div v-if="selectedBooking.service_address">
+              <span class="text-slate-400 font-medium">สถานที่นัดหมายบริการ:</span>
+              <p class="font-medium text-slate-800 mt-0.5 leading-relaxed">{{ selectedBooking.service_address }}</p>
+              <a :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedBooking.service_address)}`" target="_blank" class="inline-flex items-center gap-1 text-[#FF7A59] font-medium mt-1 hover:underline">
+                เปิดใน Google Maps <ExternalLink class="w-3 h-3" />
+              </a>
+            </div>
+            <div v-if="selectedBooking.emergency_contact_phone" class="pt-2 border-t border-slate-200 flex justify-between items-center">
+              <span class="text-slate-400 font-medium">เบอร์ติดต่อฉุกเฉินสำรอง:</span>
+              <span class="font-semibold text-slate-800">{{ selectedBooking.emergency_contact_phone }}</span>
+            </div>
+            <div v-if="selectedBooking.preferred_vet_clinic" class="pt-2 border-t border-slate-200 flex justify-between items-center">
+              <span class="text-slate-400 font-medium">คลินิกสัตว์แพทย์ประจำตัว:</span>
+              <span class="font-semibold text-slate-800">{{ selectedBooking.preferred_vet_clinic }}</span>
+            </div>
+          </div>
+
+          <!-- Refund Status & Admin Actions -->
+          <div v-if="selectedBooking.refund_status" class="p-4 rounded-2xl border border-rose-200 bg-rose-50/60 space-y-2 text-xs text-rose-900">
+            <span class="font-bold text-rose-950 flex items-center justify-between">
+              <span>💸 ข้อมูลการขอคืนเงิน (Refund)</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase" :class="selectedBooking.refund_status === 'refunded' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'">
+                {{ selectedBooking.refund_status }}
+              </span>
+            </span>
+            <p v-if="selectedBooking.refund_reason"><strong>เหตุผล:</strong> {{ selectedBooking.refund_reason }}</p>
+            <p v-if="selectedBooking.refund_bank_info"><strong>บัญชีรับเงินคืน:</strong> {{ selectedBooking.refund_bank_info }}</p>
+            <div v-if="selectedBooking.refund_status === 'requested'" class="flex gap-2 pt-2 border-t border-rose-200">
+              <button @click="approveRefund(selectedBooking)" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold cursor-pointer text-xs">
+                อนุมัติและบันทึกโอนคืนแล้ว (Approve Refund)
+              </button>
+              <button @click="rejectRefund(selectedBooking)" class="px-3.5 py-2 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-xl font-semibold cursor-pointer text-xs">
+                ปฏิเสธคำขอคืนเงิน
+              </button>
+            </div>
           </div>
 
           <!-- Slip Box if available -->

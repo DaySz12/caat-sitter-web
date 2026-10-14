@@ -14,7 +14,8 @@ public static class Mapping
 
     public static CatDto ToDto(this Cat c) => new(
         c.Id, c.OwnerId, c.Name, c.Breed, c.AgeYears, c.AgeMonths, c.Weight, c.Gender,
-        c.IsNeutered, c.PhotoUrl, c.DietaryHabits, c.MedicalNotes, c.Vaccines, c.CreatedAt
+        c.IsNeutered, c.PhotoUrl, c.DietaryHabits, c.MedicalNotes, c.EmergencyVetClinic,
+        c.EmergencyContactPhone, c.Vaccines, c.CreatedAt
     );
 
     public static SitterDto ToDto(this SitterProfile s, double? distanceKm = null, double? matchScore = null) => new(
@@ -28,7 +29,10 @@ public static class Mapping
         b.Id, b.BookingCode, b.OwnerId, b.SitterId, b.StartDate, b.EndDate, b.DaysCount,
         b.BasePrice, b.ServiceFee, b.TotalPrice, b.Status, b.PaymentStatus,
         b.PaymentSlipUrl, b.PaymentSlipUploadedAt, b.PaymentRejectionReason,
-        b.SpecialInstructions, b.CancellationReason, b.CreatedAt,
+        b.SpecialInstructions, b.CancellationReason,
+        b.ServiceAddress, b.EmergencyContactPhone, b.PreferredVetClinic,
+        b.RefundStatus, b.RefundReason, b.RefundBankInfo,
+        b.CreatedAt,
         b.Owner?.ToDto(), b.Sitter?.ToDto(),
         b.BookingCats?.Where(bc => bc.Cat is not null).Select(bc => bc.Cat!.ToDto()).ToList() ?? new List<CatDto>(),
         review?.ToDto()

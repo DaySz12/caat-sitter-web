@@ -3,7 +3,8 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   ArrowLeft, MessageCircle, Phone, CalendarDays, Cat as CatIcon, HeartPulse,
-  Utensils, Star, CreditCard, CheckCircle2, Clock, AlertCircle, Upload, Eye, X, Copy, Check
+  Utensils, Star, CreditCard, CheckCircle2, Clock, AlertCircle, Upload, Eye, X, Copy, Check,
+  MapPin, ExternalLink, Printer, ShieldCheck, Undo2
 } from 'lucide-vue-next';
 import { bookingApi } from './booking.api';
 import { careApi } from '@/features/care/care.api';
@@ -32,6 +33,44 @@ const care = ref<BookingCareDto | null>(null);
 const isLoading = ref(true);
 const isBusy = ref(false);
 const error = ref<string | null>(null);
+
+// Refund modal state
+const showRefundModal = ref(false);
+const refundReason = ref('');
+const refundBankInfo = ref('');
+const isSubmittingRefund = ref(false);
+const refundError = ref<string | null>(null);
+
+function openRefundModal() {
+  refundReason.value = '';
+  refundBankInfo.value = '';
+  refundError.value = null;
+  showRefundModal.value = true;
+}
+
+async function submitRefund() {
+  if (!booking.value) return;
+  if (!refundReason.value.trim() || !refundBankInfo.value.trim()) {
+    refundError.value = 'กรุณาระบุเหตุผลการขอยกเลิกและข้อมูลบัญชีสำหรับโอนเงินคืน';
+    return;
+  }
+  isSubmittingRefund.value = true;
+  refundError.value = null;
+  try {
+    const updated = await bookingApi.requestRefund(booking.value.id, refundReason.value.trim(), refundBankInfo.value.trim());
+    booking.value = { ...updated, review: booking.value.review };
+    showRefundModal.value = false;
+    summaryStore.refresh();
+  } catch (err: any) {
+    refundError.value = err?.message || 'ส่งคำขอคืนเงินไม่สำเร็จ';
+  } finally {
+    isSubmittingRefund.value = false;
+  }
+}
+
+function printReceipt() {
+  window.print();
+}
 
 // Payment modal state
 const showPaymentModal = ref(false);
@@ -290,35 +329,64 @@ onMounted(load);
         <div v-if="other" class="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-slate-100">
           <UserAvatar :name="other.name" :src="other.avatarUrl" size-class="w-11 h-11 text-base" />
           <div class="flex-1 min-w-0">
-            <p class="text-xs text-slate-400">{{ isSitter ? 'เจ้าของแมว' : 'ผู้รับฝากเลี้ยง' }}</p>
+            <div class="flex items-center gap-2">
+              <p class="text-xs text-slate-400">{{ isSitter ? 'เจ้าของแมว' : 'ผู้รับฝากเลี้ยง' }}</p>
+              <span v-if="!isSitter" class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                <ShieldCheck class="w-3.5 h-3.5 text-emerald-600" /> ยืนยันตัวตนแล้ว
+              </span>
+            </div>
             <p class="text-sm font-semibold text-slate-800 truncate">{{ other.name }}</p>
           </div>
           <a
             v-if="other.phone"
             :href="`tel:${other.phone}`"
-            class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer"
           >
             <Phone class="w-4 h-4" /> โทร
           </a>
           <button
-            class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 text-sm font-semibold text-slate-700 hover:bg-slate-200"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 text-sm font-semibold text-slate-700 hover:bg-slate-200 cursor-pointer"
             @click="openChat"
           >
             <MessageCircle class="w-4 h-4" /> แชท
           </button>
+          <button
+            type="button"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+            @click="printReceipt"
+          >
+            <Printer class="w-4 h-4 text-slate-500" /> พิมพ์ใบเสร็จ
+          </button>
+        </div>
+
+        <!-- Refund Status Alerts -->
+        <div v-if="booking.refundStatus === 'requested'" class="p-3.5 bg-amber-50/80 border border-amber-200/80 rounded-xl text-xs text-amber-900 flex items-start gap-2.5 mt-4">
+          <Clock class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p class="font-semibold text-amber-950">ส่งคำขอคืนเงินแล้ว (รอเจ้าหน้าที่ตรวจสอบ)</p>
+            <p class="text-amber-800 mt-0.5">เหตุผล: {{ booking.refundReason }}</p>
+            <p v-if="booking.refundBankInfo" class="text-amber-700 mt-0.5">บัญชีรับเงินคืน: {{ booking.refundBankInfo }}</p>
+          </div>
+        </div>
+        <div v-else-if="booking.refundStatus === 'refunded'" class="p-3.5 bg-emerald-50/80 border border-emerald-200/80 rounded-xl text-xs text-emerald-900 flex items-center gap-2.5 mt-4">
+          <CheckCircle2 class="w-4 h-4 text-emerald-600 shrink-0" />
+          <div>
+            <p class="font-semibold text-emerald-950">ดำเนินการคืนเงินเรียบร้อยแล้ว</p>
+            <p class="text-emerald-700 mt-0.5">ระบบได้โอนเงินคืนตามบัญชีที่คุณระบุเรียบร้อยแล้ว</p>
+          </div>
         </div>
 
         <!-- Actions -->
         <p v-if="error" class="text-xs text-red-500 mt-3">{{ error }}</p>
         <div class="flex flex-wrap gap-2 mt-4 empty:hidden">
           <template v-if="isSitter && booking.status === 'pending'">
-            <button :disabled="isBusy" class="px-4 py-2.5 rounded-xl bg-red-50 text-red-600 text-sm font-semibold disabled:opacity-50" @click="updateStatus('rejected', 'ต้องการปฏิเสธคำขอนี้ใช่หรือไม่?')">ปฏิเสธ</button>
-            <button :disabled="isBusy" class="px-4 py-2.5 rounded-xl bg-[#FF7A59] text-white text-sm font-semibold disabled:opacity-50" @click="updateStatus('confirmed')">ตอบรับงาน</button>
+            <button :disabled="isBusy" class="px-4 py-2.5 rounded-xl bg-red-50 text-red-600 text-sm font-semibold disabled:opacity-50 cursor-pointer" @click="updateStatus('rejected', 'ต้องการปฏิเสธคำขอนี้ใช่หรือไม่?')">ปฏิเสธ</button>
+            <button :disabled="isBusy" class="px-4 py-2.5 rounded-xl bg-[#FF7A59] text-white text-sm font-semibold disabled:opacity-50 cursor-pointer" @click="updateStatus('confirmed')">ตอบรับงาน</button>
           </template>
           <button
             v-if="isSitter && booking.status === 'confirmed'"
             :disabled="isBusy"
-            class="px-4 py-2.5 rounded-xl bg-[#1E2238] text-white text-sm font-semibold disabled:opacity-50"
+            class="px-4 py-2.5 rounded-xl bg-[#1E2238] text-white text-sm font-semibold disabled:opacity-50 cursor-pointer"
             @click="updateStatus('in_progress')"
           >
             เริ่มดูแล
@@ -326,7 +394,7 @@ onMounted(load);
           <button
             v-if="isSitter && booking.status === 'in_progress'"
             :disabled="isBusy"
-            class="px-4 py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold disabled:opacity-50"
+            class="px-4 py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold disabled:opacity-50 cursor-pointer"
             @click="updateStatus('completed', 'ยืนยันว่างานดูแลครั้งนี้เสร็จสิ้นแล้ว?')"
           >
             เสร็จสิ้นงาน
@@ -334,19 +402,87 @@ onMounted(load);
           <button
             v-if="!isSitter && booking.status === 'pending'"
             :disabled="isBusy"
-            class="px-4 py-2.5 rounded-xl bg-red-50 text-red-600 text-sm font-semibold disabled:opacity-50"
+            class="px-4 py-2.5 rounded-xl bg-red-50 text-red-600 text-sm font-semibold disabled:opacity-50 cursor-pointer"
             @click="updateStatus('cancelled', 'ต้องการยกเลิกการจองนี้ใช่หรือไม่?')"
           >
             ยกเลิกการจอง
           </button>
+          <button
+            v-if="!isSitter && booking.paymentStatus === 'paid' && booking.status !== 'completed' && booking.status !== 'cancelled' && !booking.refundStatus"
+            type="button"
+            class="px-4 py-2.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 text-sm font-semibold transition cursor-pointer flex items-center gap-1.5"
+            @click="openRefundModal"
+          >
+            <Undo2 class="w-4 h-4" /> ขอยกเลิกและขอคืนเงิน
+          </button>
         </div>
-        <p v-if="booking.cancellationReason" class="text-sm text-red-500 bg-red-50 rounded-xl p-3 mt-4">
+        <p v-if="booking.cancellationReason && booking.refundStatus !== 'requested'" class="text-sm text-red-500 bg-red-50 rounded-xl p-3 mt-4">
           เหตุผลที่ยกเลิก: {{ booking.cancellationReason }}
         </p>
       </div>
 
       <div class="grid lg:grid-cols-[1fr_360px] gap-5 items-start">
         <div class="space-y-5 min-w-0">
+          <!-- Service Address Card -->
+          <section v-if="booking.serviceAddress" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <h2 class="font-semibold text-slate-800 flex items-center gap-2">
+                <MapPin class="w-5 h-5 text-[#FF7A59]" />
+                สถานที่นัดหมายบริการ (Service Address)
+              </h2>
+              <a
+                :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(booking.serviceAddress)}`"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-1 text-xs text-[#FF7A59] font-semibold hover:underline cursor-pointer"
+              >
+                <ExternalLink class="w-3.5 h-3.5" /> เปิด Google Maps
+              </a>
+            </div>
+            <div class="relative bg-slate-50 border border-slate-100 rounded-xl p-3.5">
+              <p class="text-sm text-slate-700 leading-relaxed font-normal">{{ booking.serviceAddress }}</p>
+              <div class="mt-2 pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                <span class="text-xs text-slate-400">สำหรับให้พี่เลี้ยงเดินทางไปดูแลน้องแมว</span>
+                <button
+                  type="button"
+                  @click="copyText(booking.serviceAddress, 'serviceAddress')"
+                  class="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900 font-medium cursor-pointer"
+                >
+                  <component :is="copiedField === 'serviceAddress' ? Check : Copy" class="w-3.5 h-3.5" :class="copiedField === 'serviceAddress' ? 'text-green-600' : ''" />
+                  {{ copiedField === 'serviceAddress' ? 'คัดลอกแล้ว' : 'คัดลอกที่อยู่' }}
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Emergency Info Card -->
+          <section v-if="booking.emergencyContactPhone || booking.preferredVetClinic" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-3">
+            <h2 class="font-semibold text-slate-800 flex items-center gap-2">
+              <AlertCircle class="w-5 h-5 text-amber-500" />
+              ข้อมูลติดต่อฉุกเฉิน & สัตวแพทย์
+            </h2>
+            <div class="grid sm:grid-cols-2 gap-3 text-sm">
+              <div v-if="booking.emergencyContactPhone" class="bg-amber-50/70 border border-amber-200/70 rounded-xl p-3.5">
+                <p class="text-xs text-amber-800 font-medium">เบอร์ติดต่อฉุกเฉินสำรอง</p>
+                <a :href="`tel:${booking.emergencyContactPhone}`" class="text-sm font-bold text-amber-950 mt-1 inline-flex items-center gap-1.5 hover:underline">
+                  <Phone class="w-4 h-4 text-amber-700" /> {{ booking.emergencyContactPhone }}
+                </a>
+              </div>
+              <div v-if="booking.preferredVetClinic" class="bg-blue-50/70 border border-blue-200/70 rounded-xl p-3.5">
+                <p class="text-xs text-blue-800 font-medium">คลินิก / โรงพยาบาลสัตว์ประจำตัว</p>
+                <a
+                  :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(booking.preferredVetClinic)}`"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-sm font-bold text-blue-950 mt-1 inline-flex items-center gap-1.5 hover:underline"
+                >
+                  <HeartPulse class="w-4 h-4 text-blue-700" /> {{ booking.preferredVetClinic }}
+                  <ExternalLink class="w-3 h-3 text-blue-500" />
+                </a>
+              </div>
+            </div>
+          </section>
+
           <!-- Review -->
           <section
             v-if="booking.status === 'completed' && (booking.review || !isSitter)"
@@ -722,6 +858,85 @@ onMounted(load);
           >
             ปิดหน้าต่าง
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Refund Request -->
+    <div
+      v-if="showRefundModal && booking"
+      class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto"
+    >
+      <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden my-6">
+        <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-base flex items-center gap-2">
+              <Undo2 class="w-5 h-5 text-rose-400" />
+              ขอยกเลิกการจองและขอคืนเงิน
+            </h3>
+            <p class="text-xs text-slate-300 mt-0.5 font-mono">รหัสการจอง: {{ booking.bookingCode }}</p>
+          </div>
+          <button
+            type="button"
+            @click="showRefundModal = false"
+            class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer"
+          >
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <div class="bg-rose-50 border border-rose-200/80 rounded-xl p-3.5 text-xs text-rose-800 space-y-1">
+            <p class="font-semibold text-rose-950">ยอดเงินที่จะได้รับคืน: {{ formatCurrency(booking.totalPrice) }}</p>
+            <p class="text-rose-700">เจ้าหน้าที่จะตรวจสอบข้อมูลและโอนเงินคืนเข้าบัญชีธนาคารที่คุณระบุภายใน 1-3 วันทำการ</p>
+          </div>
+
+          <div v-if="refundError" class="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600 flex items-start gap-2">
+            <AlertCircle class="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{{ refundError }}</span>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+              เหตุผลในการขอยกเลิก <span class="text-rose-500">*</span>
+            </label>
+            <textarea
+              v-model="refundReason"
+              rows="2"
+              placeholder="เช่น ยกเลิกการเดินทาง, น้องแมวเข้า รพ. แล้ว"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/30 focus:border-[#FF7A59]"
+            ></textarea>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+              ข้อมูลบัญชีสำหรับรับเงินคืน <span class="text-rose-500">*</span>
+            </label>
+            <textarea
+              v-model="refundBankInfo"
+              rows="2"
+              placeholder="ระบุ: ธนาคาร, เลขที่บัญชี, ชื่อเจ้าของบัญชี (หรือเบอร์พร้อมเพย์)"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/30 focus:border-[#FF7A59]"
+            ></textarea>
+          </div>
+
+          <div class="pt-2 flex gap-3">
+            <button
+              type="button"
+              @click="showRefundModal = false"
+              class="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition cursor-pointer"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              :disabled="isSubmittingRefund"
+              @click="submitRefund"
+              class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold shadow-md shadow-rose-600/20 transition disabled:opacity-50 cursor-pointer"
+            >
+              {{ isSubmittingRefund ? 'กำลังส่งคำขอ...' : 'ยืนยันขอคืนเงิน' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>

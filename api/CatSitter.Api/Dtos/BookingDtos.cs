@@ -18,6 +18,12 @@ public record BookingDto(
     string? PaymentRejectionReason,
     string? SpecialInstructions,
     string? CancellationReason,
+    string? ServiceAddress,
+    string? EmergencyContactPhone,
+    string? PreferredVetClinic,
+    string? RefundStatus,
+    string? RefundReason,
+    string? RefundBankInfo,
     DateTimeOffset CreatedAt,
     UserDto? Owner,
     UserDto? Sitter,
@@ -30,7 +36,10 @@ public record CreateBookingRequest(
     List<Guid> CatIds,
     DateOnly StartDate,
     DateOnly EndDate,
-    string? SpecialInstructions
+    string? SpecialInstructions,
+    string? ServiceAddress = null,
+    string? EmergencyContactPhone = null,
+    string? PreferredVetClinic = null
 );
 
 public record UpdateBookingStatusRequest(
@@ -40,5 +49,10 @@ public record UpdateBookingStatusRequest(
 
 public record UploadPaymentSlipRequest(
     string SlipUrl
+);
+
+public record RequestRefundRequest(
+    string Reason,
+    string BankInfo
 );
 

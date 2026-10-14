@@ -17,6 +17,10 @@ const selectedCatIds = ref<string[]>([]);
 const startDate = ref('');
 const endDate = ref('');
 const specialInstructions = ref('');
+const serviceAddress = ref('');
+const emergencyContactPhone = ref('');
+const preferredVetClinic = ref('');
+
 const isLoading = ref(true);
 const isSubmitting = ref(false);
 const errorMessage = ref('');
@@ -38,8 +42,18 @@ const totalPrice = computed(() => basePrice.value + serviceFee.value);
 
 function toggleCat(id: string) {
   const idx = selectedCatIds.value.indexOf(id);
-  if (idx >= 0) selectedCatIds.value.splice(idx, 1);
-  else selectedCatIds.value.push(id);
+  if (idx >= 0) {
+    selectedCatIds.value.splice(idx, 1);
+  } else {
+    selectedCatIds.value.push(id);
+    const cat = cats.value.find((c) => c.id === id);
+    if (cat?.emergencyContactPhone && !emergencyContactPhone.value) {
+      emergencyContactPhone.value = cat.emergencyContactPhone;
+    }
+    if (cat?.emergencyVetClinic && !preferredVetClinic.value) {
+      preferredVetClinic.value = cat.emergencyVetClinic;
+    }
+  }
 }
 
 onMounted(async () => {
@@ -51,6 +65,11 @@ onMounted(async () => {
   const [sitterData, catsData] = await Promise.all([sittersApi.getById(sitterId), catsApi.mine()]);
   sitter.value = sitterData;
   cats.value = catsData;
+  if (catsData.length > 0) {
+    const first = catsData[0];
+    if (first.emergencyContactPhone) emergencyContactPhone.value = first.emergencyContactPhone;
+    if (first.emergencyVetClinic) preferredVetClinic.value = first.emergencyVetClinic;
+  }
   isLoading.value = false;
 });
 
@@ -64,6 +83,10 @@ async function handleSubmit() {
     errorMessage.value = 'กรุณาเลือกวันที่ฝากเลี้ยง';
     return;
   }
+  if (!serviceAddress.value.trim()) {
+    errorMessage.value = 'กรุณาระบุที่อยู่ / สถานที่นัดหมายสำหรับการดูแลน้องแมว';
+    return;
+  }
   if (!sitter.value) return;
 
   isSubmitting.value = true;
@@ -74,6 +97,9 @@ async function handleSubmit() {
       startDate: startDate.value,
       endDate: endDate.value,
       specialInstructions: specialInstructions.value || undefined,
+      serviceAddress: serviceAddress.value.trim(),
+      emergencyContactPhone: emergencyContactPhone.value.trim() || undefined,
+      preferredVetClinic: preferredVetClinic.value.trim() || undefined,
     });
     router.push(`/owner/bookings?highlight=${booking.id}`);
   } catch (err: any) {
@@ -135,7 +161,46 @@ async function handleSubmit() {
 
       <div>
         <label class="block text-sm font-medium text-slate-700 mb-1.5">คำแนะนำพิเศษ (ไม่บังคับ)</label>
-        <textarea v-model="specialInstructions" rows="2" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm"></textarea>
+        <textarea v-model="specialInstructions" rows="2" placeholder="เช่น รายละเอียดการให้อาหาร นิสัยเฉพาะตัว หรือจุดเก็บของเล่น" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/30 focus:border-[#FF7A59]"></textarea>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+          ที่อยู่ / สถานที่นัดหมายบริการ <span class="text-red-500">*</span>
+        </label>
+        <textarea
+          v-model="serviceAddress"
+          rows="2"
+          placeholder="เช่น คอนโด Ideo สุขุมวิท 115 ชั้น 12 ห้อง 1204 แขวงบางนาใต้ เขตบางนา กทม."
+          class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/30 focus:border-[#FF7A59]"
+        ></textarea>
+        <p class="text-[11px] text-slate-400 mt-1">ที่อยู่นี้จะแสดงให้พี่เลี้ยงเห็นเพื่อเดินทางมาดูแลน้องแมว</p>
+      </div>
+
+      <div class="border-t border-slate-100 pt-3">
+        <p class="text-xs font-semibold text-slate-700 mb-2.5 flex items-center gap-1.5">
+          <span>🚨 ข้อมูลกรณีฉุกเฉิน (ไม่บังคับ)</span>
+        </p>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">เบอร์ติดต่อฉุกเฉินสำรอง</label>
+            <input
+              v-model="emergencyContactPhone"
+              type="tel"
+              placeholder="เช่น 089-123-4567 (คุณแม่/เพื่อนสนิท)"
+              class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/30 focus:border-[#FF7A59]"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">คลินิก / โรงพยาบาลสัตว์ประจำตัว</label>
+            <input
+              v-model="preferredVetClinic"
+              type="text"
+              placeholder="เช่น โรงพยาบาลสัตว์ทองหล่อ (สาขาสุขุมวิท)"
+              class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/30 focus:border-[#FF7A59]"
+            />
+          </div>
+        </div>
       </div>
 
       <div class="bg-slate-50 rounded-xl p-4 space-y-1.5 text-sm">

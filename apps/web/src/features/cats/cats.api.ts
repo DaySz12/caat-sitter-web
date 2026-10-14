@@ -12,6 +12,8 @@ export interface CatUpsertPayload {
   photoUrl?: string | null;
   dietaryHabits?: string | null;
   medicalNotes?: string | null;
+  emergencyVetClinic?: string | null;
+  emergencyContactPhone?: string | null;
   vaccines?: string[];
 }
 

@@ -22,7 +22,9 @@ const router = useRouter();
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-1.5">
         <h3 class="font-semibold text-slate-800 truncate">{{ sitter.user?.name || 'ผู้รับฝากเลี้ยง' }}</h3>
-        <ShieldCheck v-if="sitter.isVerified" class="w-4 h-4 text-blue-500 shrink-0" />
+        <span v-if="sitter.isVerified" class="inline-flex items-center gap-0.5 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.2 rounded-full font-semibold shrink-0">
+          <ShieldCheck class="w-3 h-3 text-emerald-600" /> ยืนยันแล้ว
+        </span>
       </div>
       <div class="flex items-center gap-2 mt-0.5">
         <RatingStars :rating="sitter.ratingAvg" />

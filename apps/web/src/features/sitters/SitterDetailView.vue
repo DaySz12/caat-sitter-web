@@ -50,9 +50,11 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div class="flex items-center gap-1.5">
+        <div class="flex flex-wrap items-center gap-2">
           <h1 class="text-lg font-bold text-slate-800">{{ sitter.user?.name }}</h1>
-          <ShieldCheck v-if="sitter.isVerified" class="w-4 h-4 text-blue-500" />
+          <span v-if="sitter.isVerified" class="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full font-semibold">
+            <ShieldCheck class="w-3.5 h-3.5 text-emerald-600" /> ยืนยันตัวตนแล้ว
+          </span>
         </div>
         <div class="flex items-center gap-2 mt-1">
           <RatingStars :rating="sitter.ratingAvg" />

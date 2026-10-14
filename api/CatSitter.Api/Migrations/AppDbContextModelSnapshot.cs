@@ -164,6 +164,10 @@ namespace CatSitter.Api.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("days_count");
 
+                    b.Property<string>("EmergencyContactPhone")
+                        .HasColumnType("text")
+                        .HasColumnName("emergency_contact_phone");
+
                     b.Property<DateOnly>("EndDate")
                         .HasColumnType("date")
                         .HasColumnName("end_date");
@@ -192,6 +196,34 @@ namespace CatSitter.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("payment_status");
+
+                    b.Property<string>("PreferredVetClinic")
+                        .HasColumnType("text")
+                        .HasColumnName("preferred_vet_clinic");
+
+                    b.Property<string>("RefundBankInfo")
+                        .HasColumnType("text")
+                        .HasColumnName("refund_bank_info");
+
+                    b.Property<DateTimeOffset?>("RefundProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("refund_processed_at");
+
+                    b.Property<string>("RefundReason")
+                        .HasColumnType("text")
+                        .HasColumnName("refund_reason");
+
+                    b.Property<DateTimeOffset?>("RefundRequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("refund_requested_at");
+
+                    b.Property<string>("RefundStatus")
+                        .HasColumnType("text")
+                        .HasColumnName("refund_status");
+
+                    b.Property<string>("ServiceAddress")
+                        .HasColumnType("text")
+                        .HasColumnName("service_address");
 
                     b.Property<decimal>("ServiceFee")
                         .HasColumnType("numeric(10,2)")
@@ -286,6 +318,14 @@ namespace CatSitter.Api.Migrations
                     b.Property<string>("DietaryHabits")
                         .HasColumnType("text")
                         .HasColumnName("dietary_habits");
+
+                    b.Property<string>("EmergencyContactPhone")
+                        .HasColumnType("text")
+                        .HasColumnName("emergency_contact_phone");
+
+                    b.Property<string>("EmergencyVetClinic")
+                        .HasColumnType("text")
+                        .HasColumnName("emergency_vet_clinic");
 
                     b.Property<string>("Gender")
                         .IsRequired()

@@ -7,6 +7,9 @@ export interface CreateBookingPayload {
   startDate: string; // yyyy-MM-dd
   endDate: string;
   specialInstructions?: string;
+  serviceAddress?: string;
+  emergencyContactPhone?: string;
+  preferredVetClinic?: string;
 }
 
 export const bookingApi = {
@@ -18,4 +21,6 @@ export const bookingApi = {
     api.patch<BookingDto>(`/api/bookings/${id}/status`, { status, cancellationReason }),
   uploadPaymentSlip: (id: string, slipUrl: string) =>
     api.post<BookingDto>(`/api/bookings/${id}/payment-slip`, { slipUrl }),
+  requestRefund: (id: string, reason: string, bankInfo: string) =>
+    api.post<BookingDto>(`/api/bookings/${id}/refund-request`, { reason, bankInfo }),
 };

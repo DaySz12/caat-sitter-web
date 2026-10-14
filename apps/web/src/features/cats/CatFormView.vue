@@ -20,6 +20,8 @@ const isNeutered = ref(false);
 const photoUrl = ref<string | null>(null);
 const dietaryHabits = ref('');
 const medicalNotes = ref('');
+const emergencyVetClinic = ref('');
+const emergencyContactPhone = ref('');
 
 const isSaving = ref(false);
 const isUploading = ref(false);
@@ -38,6 +40,8 @@ onMounted(async () => {
   photoUrl.value = cat.photoUrl;
   dietaryHabits.value = cat.dietaryHabits ?? '';
   medicalNotes.value = cat.medicalNotes ?? '';
+  emergencyVetClinic.value = cat.emergencyVetClinic ?? '';
+  emergencyContactPhone.value = cat.emergencyContactPhone ?? '';
 });
 
 async function handlePhotoChange(e: Event) {
@@ -73,6 +77,8 @@ async function handleSubmit() {
       photoUrl: photoUrl.value,
       dietaryHabits: dietaryHabits.value || null,
       medicalNotes: medicalNotes.value || null,
+      emergencyVetClinic: emergencyVetClinic.value || null,
+      emergencyContactPhone: emergencyContactPhone.value || null,
       vaccines: [],
     };
     if (isEdit.value && catId.value) {
@@ -159,6 +165,20 @@ async function handleSubmit() {
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1.5">ประวัติสุขภาพ / ยาที่ต้องกิน</label>
           <textarea v-model="medicalNotes" rows="2" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm"></textarea>
+        </div>
+
+        <div class="border-t border-slate-100 pt-3">
+          <p class="text-xs font-semibold text-slate-500 mb-2">🚨 ข้อมูลกรณีฉุกเฉิน (ไม่บังคับ)</p>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">คลินิก / โรงพยาบาลสัตว์ประจำตัว</label>
+              <input v-model="emergencyVetClinic" type="text" placeholder="เช่น รพ.สัตว์ทองหล่อ (สาขาสุขุมวิท)" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/30 focus:border-[#FF7A59]" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">เบอร์ติดต่อฉุกเฉินสำรอง</label>
+              <input v-model="emergencyContactPhone" type="tel" placeholder="เช่น 089-123-4567 (คุณแม่)" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/30 focus:border-[#FF7A59]" />
+            </div>
+          </div>
         </div>
 
         <button

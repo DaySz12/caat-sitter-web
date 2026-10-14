@@ -13,6 +13,8 @@ public record CatDto(
     string? PhotoUrl,
     string? DietaryHabits,
     string? MedicalNotes,
+    string? EmergencyVetClinic,
+    string? EmergencyContactPhone,
     List<string> Vaccines,
     DateTimeOffset CreatedAt
 );
@@ -28,5 +30,7 @@ public record CatUpsertRequest(
     string? PhotoUrl,
     string? DietaryHabits,
     string? MedicalNotes,
+    string? EmergencyVetClinic,
+    string? EmergencyContactPhone,
     List<string>? Vaccines
 );

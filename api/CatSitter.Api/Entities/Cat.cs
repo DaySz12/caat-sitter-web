@@ -14,6 +14,8 @@ public class Cat
     public string? PhotoUrl { get; set; }
     public string? DietaryHabits { get; set; }
     public string? MedicalNotes { get; set; }
+    public string? EmergencyVetClinic { get; set; }
+    public string? EmergencyContactPhone { get; set; }
     public List<string> Vaccines { get; set; } = new();
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;

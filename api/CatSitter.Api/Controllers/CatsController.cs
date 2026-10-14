@@ -58,6 +58,8 @@ public class CatsController : ControllerBase
             PhotoUrl = req.PhotoUrl,
             DietaryHabits = req.DietaryHabits,
             MedicalNotes = req.MedicalNotes,
+            EmergencyVetClinic = req.EmergencyVetClinic,
+            EmergencyContactPhone = req.EmergencyContactPhone,
             Vaccines = req.Vaccines ?? new List<string>(),
         };
         _db.Cats.Add(cat);
@@ -83,6 +85,8 @@ public class CatsController : ControllerBase
         cat.PhotoUrl = req.PhotoUrl;
         cat.DietaryHabits = req.DietaryHabits;
         cat.MedicalNotes = req.MedicalNotes;
+        cat.EmergencyVetClinic = req.EmergencyVetClinic;
+        cat.EmergencyContactPhone = req.EmergencyContactPhone;
         cat.Vaccines = req.Vaccines ?? cat.Vaccines;
         cat.UpdatedAt = DateTimeOffset.UtcNow;
 

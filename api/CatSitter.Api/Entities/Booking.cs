@@ -19,6 +19,14 @@ public class Booking
     public string? PaymentRejectionReason { get; set; }
     public string? PaymentIntentId { get; set; }
     public string? SpecialInstructions { get; set; }
+    public string? ServiceAddress { get; set; }
+    public string? EmergencyContactPhone { get; set; }
+    public string? PreferredVetClinic { get; set; }
+    public string? RefundStatus { get; set; } // null | requested | refunded | rejected
+    public string? RefundReason { get; set; }
+    public string? RefundBankInfo { get; set; }
+    public DateTimeOffset? RefundRequestedAt { get; set; }
+    public DateTimeOffset? RefundProcessedAt { get; set; }
     public string? CancellationReason { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;

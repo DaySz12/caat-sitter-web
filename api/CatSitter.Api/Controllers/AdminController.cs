@@ -142,7 +142,9 @@ public class AdminController : ControllerBase
             .Select(b => new AdminBookingDto(
                 b.Id, b.BookingCode, b.StartDate, b.EndDate, b.DaysCount, b.BasePrice, b.ServiceFee, b.TotalPrice,
                 b.Status, b.PaymentStatus, b.PaymentSlipUrl, b.PaymentSlipUploadedAt, b.PaymentRejectionReason,
-                b.SpecialInstructions, b.CreatedAt,
+                b.SpecialInstructions, b.ServiceAddress, b.EmergencyContactPhone, b.PreferredVetClinic,
+                b.RefundStatus, b.RefundReason, b.RefundBankInfo, b.RefundRequestedAt,
+                b.CreatedAt,
                 b.Owner == null ? null : new AdminUserContactDto(b.Owner.Name, b.Owner.Email, b.Owner.Phone, b.Owner.AvatarUrl),
                 b.Sitter == null ? null : new AdminUserContactDto(b.Sitter.Name, b.Sitter.Email, b.Sitter.Phone, b.Sitter.AvatarUrl)
             ))
@@ -173,7 +175,9 @@ public class AdminController : ControllerBase
             .Select(b => new AdminBookingDto(
                 b.Id, b.BookingCode, b.StartDate, b.EndDate, b.DaysCount, b.BasePrice, b.ServiceFee, b.TotalPrice,
                 b.Status, b.PaymentStatus, b.PaymentSlipUrl, b.PaymentSlipUploadedAt, b.PaymentRejectionReason,
-                b.SpecialInstructions, b.CreatedAt,
+                b.SpecialInstructions, b.ServiceAddress, b.EmergencyContactPhone, b.PreferredVetClinic,
+                b.RefundStatus, b.RefundReason, b.RefundBankInfo, b.RefundRequestedAt,
+                b.CreatedAt,
                 b.Owner == null ? null : new AdminUserContactDto(b.Owner.Name, b.Owner.Email, b.Owner.Phone, b.Owner.AvatarUrl),
                 b.Sitter == null ? null : new AdminUserContactDto(b.Sitter.Name, b.Sitter.Email, b.Sitter.Phone, b.Sitter.AvatarUrl)
             ))
@@ -235,6 +239,66 @@ public class AdminController : ControllerBase
             Title = "⚠️ สลิปการชำระเงินไม่ผ่านการตรวจสอบ",
             Body = $"เหตุผล: {reason} กรุณาตรวจสอบและแนบสลิปใหม่อีกครั้ง",
             Type = "payment_rejected",
+            DataJson = $"{{\"booking_id\":\"{booking.Id}\"}}",
+        });
+
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpPost("bookings/{id:guid}/refund/approve")]
+    public async Task<IActionResult> ApproveRefund(Guid id)
+    {
+        var booking = await _db.Bookings.FindAsync(id);
+        if (booking is null) return NotFound(new { message = "ไม่พบรายการจอง" });
+
+        booking.RefundStatus = "refunded";
+        booking.PaymentStatus = "refunded";
+        booking.Status = "cancelled";
+        booking.RefundProcessedAt = DateTimeOffset.UtcNow;
+        booking.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.Notifications.Add(new Notification
+        {
+            UserId = booking.OwnerId,
+            Title = "✅ ดำเนินการคืนเงินเรียบร้อยแล้ว",
+            Body = $"การขอคืนเงินสำหรับการจอง {booking.BookingCode} ยอด {booking.TotalPrice:N2} บาท ได้รับการโอนคืนเรียบร้อยแล้ว",
+            Type = "refund_approved",
+            DataJson = $"{{\"booking_id\":\"{booking.Id}\"}}",
+        });
+
+        _db.Notifications.Add(new Notification
+        {
+            UserId = booking.SitterId,
+            Title = "ℹ️ การจองถูกยกเลิกและคืนเงินให้ลูกค้า",
+            Body = $"การจอง {booking.BookingCode} ถูกยกเลิกและคืนเงินให้เจ้าของแมวเรียบร้อยแล้ว",
+            Type = "booking_cancelled",
+            DataJson = $"{{\"booking_id\":\"{booking.Id}\"}}",
+        });
+
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpPost("bookings/{id:guid}/refund/reject")]
+    public async Task<IActionResult> RejectRefund(Guid id, AdminRejectPaymentRequest req)
+    {
+        var booking = await _db.Bookings.FindAsync(id);
+        if (booking is null) return NotFound(new { message = "ไม่พบรายการจอง" });
+
+        var reason = string.IsNullOrWhiteSpace(req.Reason)
+            ? "คำขอคืนเงินไม่ตรงตามเงื่อนไขการยกเลิก"
+            : req.Reason.Trim();
+
+        booking.RefundStatus = "rejected";
+        booking.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.Notifications.Add(new Notification
+        {
+            UserId = booking.OwnerId,
+            Title = "⚠️ คำขอคืนเงินไม่ได้รับการอนุมัติ",
+            Body = $"เหตุผล: {reason} สำหรับการจอง {booking.BookingCode}",
+            Type = "refund_rejected",
             DataJson = $"{{\"booking_id\":\"{booking.Id}\"}}",
         });
 

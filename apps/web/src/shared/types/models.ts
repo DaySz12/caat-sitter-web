@@ -28,6 +28,8 @@ export interface CatDto {
   photoUrl: string | null;
   dietaryHabits: string | null;
   medicalNotes: string | null;
+  emergencyVetClinic?: string | null;
+  emergencyContactPhone?: string | null;
   vaccines: string[];
   createdAt: string;
 }
@@ -72,6 +74,12 @@ export interface BookingDto {
   paymentSlipUploadedAt: string | null;
   paymentRejectionReason: string | null;
   specialInstructions: string | null;
+  serviceAddress?: string | null;
+  emergencyContactPhone?: string | null;
+  preferredVetClinic?: string | null;
+  refundStatus?: 'requested' | 'refunded' | 'rejected' | null;
+  refundReason?: string | null;
+  refundBankInfo?: string | null;
   cancellationReason: string | null;
   createdAt: string;
   owner: UserDto | null;

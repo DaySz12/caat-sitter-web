@@ -99,6 +99,13 @@ public record AdminBookingDto(
     [property: JsonPropertyName("payment_slip_uploaded_at")] DateTimeOffset? PaymentSlipUploadedAt,
     [property: JsonPropertyName("payment_rejection_reason")] string? PaymentRejectionReason,
     [property: JsonPropertyName("special_instructions")] string? SpecialInstructions,
+    [property: JsonPropertyName("service_address")] string? ServiceAddress,
+    [property: JsonPropertyName("emergency_contact_phone")] string? EmergencyContactPhone,
+    [property: JsonPropertyName("preferred_vet_clinic")] string? PreferredVetClinic,
+    [property: JsonPropertyName("refund_status")] string? RefundStatus,
+    [property: JsonPropertyName("refund_reason")] string? RefundReason,
+    [property: JsonPropertyName("refund_bank_info")] string? RefundBankInfo,
+    [property: JsonPropertyName("refund_requested_at")] DateTimeOffset? RefundRequestedAt,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
     [property: JsonPropertyName("owner")] AdminUserContactDto? Owner,
     [property: JsonPropertyName("sitter")] AdminUserContactDto? Sitter
