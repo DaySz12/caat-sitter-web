@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
-import { Cat as CatIcon, User, ChevronRight } from 'lucide-vue-next';
+import { Cat as CatIcon, User, ChevronRight, CreditCard } from 'lucide-vue-next';
 import type { BookingDto } from '@/shared/types/models';
 import { formatCurrency, formatDateRange } from '@/shared/lib/format';
 import { bookingDetailPath } from '@/shared/lib/paths';
@@ -53,9 +53,10 @@ const detailPath = computed(() => bookingDetailPath(props.perspective, props.boo
         <RouterLink
           v-if="perspective === 'owner' && booking.paymentStatus === 'unpaid' && booking.status !== 'cancelled' && booking.status !== 'rejected'"
           :to="detailPath"
-          class="px-2.5 py-1 rounded-lg bg-orange-50 text-[#FF7A59] border border-orange-200 text-xs font-semibold hover:bg-orange-100 transition"
+          class="px-2.5 py-1 rounded-lg bg-orange-50 text-[#FF7A59] border border-orange-200 text-xs font-semibold hover:bg-orange-100 transition inline-flex items-center gap-1"
         >
-          💳 ชำระเงิน
+          <CreditCard class="w-3.5 h-3.5" />
+          <span>ชำระเงิน</span>
         </RouterLink>
         <slot name="actions" :booking="booking" />
       </div>

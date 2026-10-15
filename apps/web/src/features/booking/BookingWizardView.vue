@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ArrowLeft, Loader2, AlertCircle } from 'lucide-vue-next';
+import { ArrowLeft, Loader2, AlertCircle, ShieldAlert } from 'lucide-vue-next';
 import { useAuthStore } from '@/features/auth/auth.store';
 import { sittersApi } from '@/features/sitters/sitters.api';
 import { catsApi } from '@/features/cats/cats.api';
@@ -187,7 +187,8 @@ async function handleSubmit() {
 
       <div class="border-t border-slate-100 pt-3">
         <p class="text-xs font-semibold text-slate-700 mb-2.5 flex items-center gap-1.5">
-          <span>🚨 ข้อมูลกรณีฉุกเฉิน (ไม่บังคับ)</span>
+          <ShieldAlert class="w-4 h-4 text-rose-500" />
+          <span>ข้อมูลกรณีฉุกเฉิน (ไม่บังคับ)</span>
         </p>
         <div class="space-y-3">
           <div>
