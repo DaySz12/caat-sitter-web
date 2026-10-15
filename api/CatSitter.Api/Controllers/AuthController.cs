@@ -84,6 +84,81 @@ public class AuthController : ControllerBase
         return Ok(new AuthResponse(token, user.ToDto()));
     }
 
+    [HttpPost("sso")]
+    public async Task<ActionResult<AuthResponse>> SsoLogin(SsoLoginRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Provider) || string.IsNullOrWhiteSpace(req.SsoId))
+        {
+            return BadRequest(new { message = "ข้อมูล SSO ไม่ถูกต้อง" });
+        }
+
+        var provider = req.Provider.Trim().ToLowerInvariant();
+        var email = req.Email?.Trim().ToLowerInvariant();
+
+        // 1. Try finding existing user by LineId
+        User? user = null;
+        if (provider == "line")
+        {
+            user = await _db.Users.FirstOrDefaultAsync(u => u.LineId == req.SsoId);
+        }
+
+        // 2. Try finding by email
+        if (user is null && !string.IsNullOrWhiteSpace(email))
+        {
+            user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user != null && provider == "line" && string.IsNullOrEmpty(user.LineId))
+            {
+                user.LineId = req.SsoId;
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        // 3. If new user, create user automatically
+        if (user is null)
+        {
+            var role = req.Role == "sitter" ? "sitter" : "owner";
+            var fallbackEmail = !string.IsNullOrWhiteSpace(email) 
+                ? email 
+                : $"{req.SsoId.ToLowerInvariant()}@{provider}.sso";
+
+            var existingEmail = await _db.Users.AnyAsync(u => u.Email == fallbackEmail);
+            if (existingEmail)
+            {
+                fallbackEmail = $"{req.SsoId.ToLowerInvariant()}_{Guid.NewGuid().ToString("N")[..6]}@{provider}.sso";
+            }
+
+            user = new User
+            {
+                Email = fallbackEmail,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString("N")),
+                Name = !string.IsNullOrWhiteSpace(req.Name) 
+                    ? req.Name.Trim() 
+                    : (provider == "google" ? "Google User" : "LINE User"),
+                AvatarUrl = req.AvatarUrl,
+                Role = role,
+                Status = role == "sitter" ? "pending" : "approved",
+                LineId = provider == "line" ? req.SsoId : null,
+            };
+            _db.Users.Add(user);
+
+            if (role == "sitter")
+            {
+                _db.SitterProfiles.Add(new SitterProfile
+                {
+                    Id = user.Id,
+                    Bio = "สวัสดีครับ/ค่ะ ยินดีดูแลน้องแมวอย่างดีที่สุด",
+                    PricePerDay = 300.00m,
+                    IsVerified = false,
+                });
+            }
+
+            await _db.SaveChangesAsync();
+        }
+
+        var token = _jwt.GenerateToken(user);
+        return Ok(new AuthResponse(token, user.ToDto()));
+    }
+
     [Authorize]
     [HttpGet("me")]
     public async Task<ActionResult<UserDto>> Me()

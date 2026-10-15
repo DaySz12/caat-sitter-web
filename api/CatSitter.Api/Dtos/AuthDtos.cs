@@ -10,4 +10,13 @@ public record RegisterRequest(
 
 public record LoginRequest(string Email, string Password);
 
+public record SsoLoginRequest(
+    string Provider,
+    string SsoId,
+    string? Email,
+    string Name,
+    string? AvatarUrl,
+    string? Role
+);
+
 public record AuthResponse(string Token, UserDto User);

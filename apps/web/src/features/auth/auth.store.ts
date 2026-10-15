@@ -62,10 +62,26 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function ssoLogin(payload: import('./auth.api').SsoLoginPayload): Promise<boolean> {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const res = await authApi.sso(payload);
+      setToken(res.token);
+      user.value = res.user;
+      return true;
+    } catch (e: any) {
+      error.value = e.message || 'เข้าสู่ระบบด้วย SSO ไม่สำเร็จ';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   function logout() {
     setToken(null);
     user.value = null;
   }
 
-  return { user, isLoading, error, checkSession, login, register, logout };
+  return { user, isLoading, error, checkSession, login, ssoLogin, register, logout };
 });

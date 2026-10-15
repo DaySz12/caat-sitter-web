@@ -19,9 +19,21 @@ export interface UpdateProfileParams {
   emergencyContactName?: string;
 }
 
+export interface SsoLoginPayload {
+  provider: 'line' | 'google';
+  ssoId: string;
+  email?: string;
+  name: string;
+  avatarUrl?: string;
+  role?: UserRole;
+}
+
 export const authApi = {
   login: (email: string, password: string) =>
     api.post<AuthResponse>('/api/auth/login', { email, password }),
+
+  sso: (payload: SsoLoginPayload) =>
+    api.post<AuthResponse>('/api/auth/sso', payload),
 
   register: (params: { email: string; password: string; name: string; phone?: string; role: UserRole }) =>
     api.post<AuthResponse>('/api/auth/register', params),
