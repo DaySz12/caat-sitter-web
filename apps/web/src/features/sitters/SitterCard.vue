@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import type { SitterDto } from '@/shared/types/models';
 import { formatPerDay } from '@/shared/lib/format';
 import RatingStars from '@/shared/ui/RatingStars.vue';
+import { resolveImageUrl } from '@/shared/lib/api';
 
 const props = defineProps<{ sitter: SitterDto }>();
 const router = useRouter();
@@ -15,7 +16,7 @@ const router = useRouter();
     @click="router.push(`/owner/sitters/${sitter.id}`)"
   >
     <div class="w-20 h-20 rounded-xl bg-[#FFF0EB] shrink-0 overflow-hidden flex items-center justify-center">
-      <img v-if="sitter.user?.avatarUrl" :src="sitter.user.avatarUrl" class="w-full h-full object-cover" />
+      <img v-if="sitter.user?.avatarUrl" :src="resolveImageUrl(sitter.user.avatarUrl)" class="w-full h-full object-cover" />
       <User v-else class="w-9 h-9 text-[#FF7A59]" />
     </div>
 

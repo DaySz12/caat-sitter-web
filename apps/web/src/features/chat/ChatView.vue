@@ -5,7 +5,7 @@ import { ArrowLeft, ImagePlus, Send, MessagesSquare, CalendarCheck } from 'lucid
 import { chatApi } from './chat.api';
 import { useAuthStore } from '@/features/auth/auth.store';
 import { useSummaryStore } from '@/features/notifications/summary.store';
-import { api } from '@/shared/lib/api';
+import { api, resolveImageUrl } from '@/shared/lib/api';
 import { useLiveEvent } from '@/shared/lib/liveEvents';
 import type { ChatRoomDto, MessageDto } from '@/shared/types/models';
 import { formatDate, formatRelativeTime, formatTime, toIsoDate } from '@/shared/lib/format';
@@ -210,8 +210,8 @@ onUnmounted(() => clearInterval(pollTimer));
                   class="rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap break-words"
                   :class="m.senderId === auth.user?.id ? [myBubbleClass, 'rounded-br-md'] : 'bg-white border border-slate-100 text-slate-800 rounded-bl-md'"
                 >
-                  <a v-if="m.imageUrl" :href="m.imageUrl" target="_blank" rel="noopener">
-                    <img :src="m.imageUrl" alt="รูปภาพในแชท" class="rounded-lg max-h-60 object-cover" :class="{ 'mb-1': m.content }" />
+                  <a v-if="m.imageUrl" :href="resolveImageUrl(m.imageUrl)" target="_blank" rel="noopener">
+                    <img :src="resolveImageUrl(m.imageUrl)" alt="รูปภาพในแชท" class="rounded-lg max-h-60 object-cover" :class="{ 'mb-1': m.content }" />
                   </a>
                   <span v-if="m.content">{{ m.content }}</span>
                 </div>

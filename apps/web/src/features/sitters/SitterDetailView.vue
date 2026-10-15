@@ -9,6 +9,7 @@ import ReviewList from '@/features/reviews/ReviewList.vue';
 import type { ReviewDto, SitterDto } from '@/shared/types/models';
 import { formatPerDay } from '@/shared/lib/format';
 import RatingStars from '@/shared/ui/RatingStars.vue';
+import { resolveImageUrl } from '@/shared/lib/api';
 
 const route = useRoute();
 const router = useRouter();
@@ -44,7 +45,7 @@ onMounted(async () => {
         <div class="-mt-10 mb-3">
           <div class="w-20 h-20 rounded-2xl bg-white p-1 shadow-md">
             <div class="w-full h-full rounded-xl bg-[#FFF0EB] overflow-hidden flex items-center justify-center">
-              <img v-if="sitter.user?.avatarUrl" :src="sitter.user.avatarUrl" class="w-full h-full object-cover" />
+              <img v-if="sitter.user?.avatarUrl" :src="resolveImageUrl(sitter.user.avatarUrl)" class="w-full h-full object-cover" />
               <User v-else class="w-9 h-9 text-[#FF7A59]" />
             </div>
           </div>
@@ -79,7 +80,7 @@ onMounted(async () => {
           <img
             v-for="(photo, i) in sitter.servicePhotos"
             :key="i"
-            :src="photo"
+            :src="resolveImageUrl(photo)"
             class="w-full aspect-square object-cover rounded-lg"
           />
         </div>
