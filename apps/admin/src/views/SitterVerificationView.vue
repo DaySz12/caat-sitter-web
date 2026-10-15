@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { api } from '../api/client';
+import { api, resolveImageUrl } from '../api/client';
 import {
   Check,
   X,
@@ -8,7 +8,8 @@ import {
   FileText,
   Phone,
   MapPin,
-  Loader2
+  Loader2,
+  ExternalLink
 } from 'lucide-vue-next';
 
 interface SitterItem {
@@ -163,7 +164,7 @@ onMounted(() => {
               <td class="py-4 px-6">
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 overflow-hidden shrink-0">
-                    <img v-if="sitter.avatar_url" :src="sitter.avatar_url" class="w-full h-full object-cover" />
+                    <img v-if="sitter.avatar_url" :src="resolveImageUrl(sitter.avatar_url)" class="w-full h-full object-cover" />
                     <div v-else class="w-full h-full flex items-center justify-center font-bold text-slate-500">
                       {{ sitter.name.charAt(0) }}
                     </div>
@@ -257,8 +258,18 @@ onMounted(() => {
             <h4 class="font-bold text-slate-800 text-sm mb-2 flex items-center gap-2">
               <FileText class="w-4 h-4 text-[#FF7A59]" /> รูปถ่ายบัตรประชาชน / เอกสารยืนยันตัวตน
             </h4>
-            <div v-if="selectedSitter.profile?.id_card_url" class="border border-slate-200 rounded-2xl overflow-hidden bg-slate-100 max-h-60 flex items-center justify-center">
-              <img :src="selectedSitter.profile.id_card_url" class="max-h-60 object-contain w-full" />
+            <div v-if="selectedSitter.profile?.id_card_url" class="border border-slate-200 rounded-2xl overflow-hidden bg-slate-100 p-3 flex flex-col items-center justify-center">
+              <a :href="resolveImageUrl(selectedSitter.profile.id_card_url)" target="_blank" rel="noopener" class="block max-h-64 overflow-hidden rounded-xl border border-slate-200 bg-white hover:opacity-95 transition">
+                <img :src="resolveImageUrl(selectedSitter.profile.id_card_url)" class="max-h-64 object-contain w-full" />
+              </a>
+              <a
+                :href="resolveImageUrl(selectedSitter.profile.id_card_url)"
+                target="_blank"
+                rel="noopener"
+                class="inline-flex items-center gap-1.5 text-xs text-[#FF7A59] hover:underline font-semibold mt-2.5"
+              >
+                <ExternalLink class="w-3.5 h-3.5" /> คลิกเปิดดูภาพเอกสารขนาดเต็ม
+              </a>
             </div>
             <div v-else class="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs">
               ไม่ได้แนบรูปถ่ายบัตรประชาชน
@@ -272,7 +283,7 @@ onMounted(() => {
             </h4>
             <div v-if="selectedSitter.profile?.service_photos && selectedSitter.profile.service_photos.length > 0" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div v-for="(photo, idx) in selectedSitter.profile.service_photos" :key="idx" class="rounded-xl overflow-hidden aspect-video bg-slate-100 border border-slate-200">
-                <img :src="photo" class="w-full h-full object-cover" />
+                <img :src="resolveImageUrl(photo)" class="w-full h-full object-cover" />
               </div>
             </div>
             <div v-else class="p-4 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs">

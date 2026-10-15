@@ -29,6 +29,8 @@ import { bookingApi } from '@/features/booking/booking.api';
 import { api, resolveImageUrl } from '@/shared/lib/api';
 import { formatCurrency } from '@/shared/lib/format';
 import PayoutModal from '@/features/payouts/PayoutModal.vue';
+import SitterVerificationModal from './SitterVerificationModal.vue';
+import type { SitterVerificationStatus } from '@/features/sitters/sitters.api';
 
 const auth = useAuthStore();
 
@@ -59,6 +61,16 @@ const servicePhotos = ref<string[]>([]);
 // Stats
 const jobCount = ref(0);
 const showPayoutModal = ref(false);
+const showVerificationModal = ref(false);
+
+function handleVerificationUpdated(status: SitterVerificationStatus) {
+  isVerified.value = status.isVerified;
+  if (status.isVerified) {
+    savedMessage.value = 'ยินดีด้วย! บัญชีของคุณได้รับการยืนยันตัวตนเรียบร้อยแล้ว';
+  } else {
+    savedMessage.value = 'ส่งเอกสารยืนยันตัวตนเรียบร้อยแล้ว ทีมงานกำลังดำเนินการตรวจสอบ';
+  }
+}
 
 // Status flags
 const isLoading = ref(true);
@@ -297,18 +309,25 @@ async function handleChangePassword() {
               </span>
 
               <!-- Verification Badge -->
-              <span
-                v-if="isVerified"
-                class="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-2.5 py-0.5 rounded-full font-semibold"
+              <button
+                type="button"
+                class="cursor-pointer transition hover:opacity-80"
+                :title="isVerified ? 'ดูข้อมูลการยืนยันตัวตน' : 'คลิกเพื่อยื่นเอกสารยืนยันตัวตน'"
+                @click="showVerificationModal = true"
               >
-                <ShieldCheck class="w-3.5 h-3.5 text-emerald-600" /> ยืนยันตัวตนแล้ว
-              </span>
-              <span
-                v-else
-                class="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200/70 px-2.5 py-0.5 rounded-full font-semibold"
-              >
-                <Clock class="w-3.5 h-3.5 text-amber-600" /> รอตรวจสอบตัวตน
-              </span>
+                <span
+                  v-if="isVerified"
+                  class="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-2.5 py-0.5 rounded-full font-semibold"
+                >
+                  <ShieldCheck class="w-3.5 h-3.5 text-emerald-600" /> ยืนยันตัวตนแล้ว
+                </span>
+                <span
+                  v-else
+                  class="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/70 px-2.5 py-0.5 rounded-full font-semibold"
+                >
+                  <Clock class="w-3.5 h-3.5 text-amber-600" /> ยื่นขอรับการยืนยันตัวตน 🛡️
+                </span>
+              </button>
             </div>
             <p class="text-xs text-slate-500">{{ auth.user?.email }}</p>
           </div>
@@ -360,6 +379,36 @@ async function handleChangePassword() {
     </div>
 
     <div v-else class="space-y-6">
+      <!-- 0. Verification CTA Card (if not yet verified) -->
+      <div
+        v-if="!isVerified"
+        class="bg-gradient-to-r from-emerald-50 via-teal-50/60 to-emerald-50 rounded-3xl border border-emerald-200/80 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      >
+        <div class="flex items-start gap-3.5">
+          <div class="w-11 h-11 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+            <ShieldCheck class="w-6 h-6" />
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-bold text-slate-800 text-sm sm:text-base">ยื่นขอรับการยืนยันตัวตนพี่เลี้ยง (Verified Sitter) 🛡️</h3>
+              <span class="text-[10px] bg-emerald-200 text-emerald-900 font-bold px-2 py-0.5 rounded-full">แนะนำ</span>
+            </div>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+              เพิ่มความน่าเชื่อถือให้โปรไฟล์ของคุณ ได้รับงานเร็วกว่าเดิม 3 เท่า พร้อมความมั่นใจด้านความเป็นส่วนตัวตามมาตรฐาน PDPA (อนุญาตให้ขีดฆ่าทับเอกสารและปิดบัง Laser ID ได้)
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shrink-0 shadow-xs hover:shadow-sm transition cursor-pointer"
+          @click="showVerificationModal = true"
+        >
+          <span>ยื่นเอกสารยืนยันตัวตน</span>
+          <ArrowRight class="w-3.5 h-3.5" />
+        </button>
+      </div>
+
       <!-- 1. Availability Status Toggle Card -->
       <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
         <div class="flex items-center justify-between gap-4">
@@ -717,6 +766,13 @@ async function handleChangePassword() {
       :wallet-balance="auth.user?.walletBalance ?? 0"
       @close="showPayoutModal = false"
       @submitted="() => { showPayoutModal = false; auth.checkSession(); }"
+    />
+
+    <!-- Sitter Verification Modal -->
+    <SitterVerificationModal
+      :is-open="showVerificationModal"
+      @close="showVerificationModal = false"
+      @updated="handleVerificationUpdated"
     />
   </div>
 </template>

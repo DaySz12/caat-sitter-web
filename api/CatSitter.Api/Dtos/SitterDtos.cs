@@ -49,3 +49,15 @@ public record UpdateSitterProfileRequest(
     string? SocialFacebook,
     string? SocialInstagram
 );
+
+public record SitterVerificationStatusDto(
+    bool IsVerified,
+    string Status,
+    string? IdCardUrl,
+    string? RejectionReason,
+    DateTimeOffset? SubmittedAt
+);
+
+public record SubmitVerificationRequest(
+    string IdCardUrl
+);

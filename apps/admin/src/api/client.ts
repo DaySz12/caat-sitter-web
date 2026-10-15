@@ -15,6 +15,15 @@ export function setToken(token: string | null) {
   else localStorage.removeItem(TOKEN_KEY);
 }
 
+export function resolveImageUrl(url?: string | null): string {
+  if (!url) return '';
+  if (url.includes('.trycloudflare.com/uploads/')) {
+    url = url.replace(/https?:\/\/[^/]+\/uploads\//, `${API_URL}/uploads/`);
+  }
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {

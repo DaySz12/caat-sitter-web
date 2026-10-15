@@ -145,4 +145,64 @@ public class SittersController : ControllerBase
         await _db.SaveChangesAsync();
         return Ok(profile.ToDto());
     }
+
+    [Authorize(Roles = "sitter")]
+    [HttpGet("me/verification")]
+    public async Task<ActionResult<SitterVerificationStatusDto>> GetVerificationStatus()
+    {
+        var sitterId = User.GetUserId();
+        var user = await _db.Users.FindAsync(sitterId);
+        var profile = await _db.SitterProfiles.FindAsync(sitterId);
+        if (user is null || profile is null) return NotFound();
+
+        var status = profile.IsVerified ? "approved" : user.Status;
+        return Ok(new SitterVerificationStatusDto(
+            profile.IsVerified,
+            status,
+            profile.IdCardUrl,
+            user.RejectionReason,
+            profile.UpdatedAt
+        ));
+    }
+
+    [Authorize(Roles = "sitter")]
+    [HttpPost("me/verification")]
+    public async Task<ActionResult<SitterVerificationStatusDto>> SubmitVerification(SubmitVerificationRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.IdCardUrl))
+        {
+            return BadRequest(new { message = "กรุณาแนบรูปภาพหรือเอกสารยืนยันตัวตน" });
+        }
+
+        var sitterId = User.GetUserId();
+        var user = await _db.Users.FindAsync(sitterId);
+        var profile = await _db.SitterProfiles.FindAsync(sitterId);
+        if (user is null || profile is null) return NotFound();
+
+        profile.IdCardUrl = req.IdCardUrl.Trim();
+        profile.IsVerified = false;
+        profile.UpdatedAt = DateTimeOffset.UtcNow;
+
+        user.Status = "pending";
+        user.RejectionReason = null;
+        user.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.Notifications.Add(new CatSitter.Api.Entities.Notification
+        {
+            UserId = sitterId,
+            Title = "📋 ส่งเอกสารยืนยันตัวตนเรียบร้อยแล้ว",
+            Body = "เจ้าหน้าที่กำลังตรวจสอบเอกสารของคุณ และจะแจ้งผลการอนุมัติภายใน 24 ชม.",
+            Type = "verification_submitted",
+        });
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new SitterVerificationStatusDto(
+            profile.IsVerified,
+            user.Status,
+            profile.IdCardUrl,
+            user.RejectionReason,
+            profile.UpdatedAt
+        ));
+    }
 }

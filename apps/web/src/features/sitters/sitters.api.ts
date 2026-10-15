@@ -42,8 +42,19 @@ export interface UpdateSitterProfilePayload {
   socialInstagram?: string;
 }
 
+export interface SitterVerificationStatus {
+  isVerified: boolean;
+  status: 'pending' | 'approved' | 'rejected' | 'not_submitted';
+  idCardUrl: string | null;
+  rejectionReason: string | null;
+  submittedAt: string | null;
+}
+
 export const sittersApi = {
   search: (params: SitterSearchParams = {}) => api.get<SitterDto[]>(`/api/sitters?${buildQuery(params)}`),
   getById: (id: string) => api.get<SitterDto>(`/api/sitters/${id}`),
   updateMine: (payload: UpdateSitterProfilePayload) => api.put<SitterDto>('/api/sitters/me', payload),
+  getVerificationStatus: () => api.get<SitterVerificationStatus>('/api/sitters/me/verification'),
+  submitVerification: (idCardUrl: string) =>
+    api.post<SitterVerificationStatus>('/api/sitters/me/verification', { idCardUrl }),
 };
